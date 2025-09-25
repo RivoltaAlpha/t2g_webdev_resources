@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        main {
+            max-width: 600px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .form{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Contact Us </h1>
+        <p>Fill this form to contact us</p>
+
+        <form class="form">
+            <div>
+                <input type="text" id="name" placeholder="Your Name"/>
+                <input type="email" id="email" placeholder="Your Email"/>
+                <input type="text" rows="5" id="message" placeholder="The message" />
+            </div>
+            <div>
+                <label for="subscribe"> Subscribe to newsletter</label>
+                <input type="checkbox" id="subscribe" name="subscribe"/>
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+
+
+    </main>
+</body>
+</html>

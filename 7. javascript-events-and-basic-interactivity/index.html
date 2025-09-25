@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anime JS Playground</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body> 
+    <h1>⚔️ Anime Heroes Gaming Arena</h1>
+<main class="container">
+    <!-- Character Summon Section -->
+    <section>
+        <h2>🎮 Summon Your Hero</h2>
+        <p>Click to summon your hero or join the ninja academy!</p>
+        <button type="button" id="summonBtn">Summon a Hero</button>
+        <div id="heroContainer" class="character-box"></div>
+    </section>
+
+    <section class="slideshow">
+        <h2>🔥 Epic Anime Moments</h2>
+        <img id="animeImage" src="https://img.freepik.com/premium-photo/female-hunter-with-bow-battlefield-digital-art-style-illustration-painting_37402-459.jpg?uid=R154664640&semt=ais_hybrid&w=740" alt="anime scene" />
+    </section>
+    
+    <!-- Tabs to select Heroes -->
+    <section class="tabs">
+        <h2>🎮 Hero Tabs </h2>
+        <p>Click on the tabs to view your heroes special power</p>
+        <button type="button" class="tab" onclick="showTab('gojo')">Gojo</button>
+        <button type="button" class="tab" onclick="showTab('luffy')">Luffy</button>
+        <button type="button" class="tab" onclick="showTab('kakashi')">Kakashi</button>
+        <button type="button" class="tab" onclick="showTab('zoro')">Zoro</button>
+        <button type="button" class="tab" onclick="showTab('kilua')">Kilua</button>
+        <button type="button" class="tab" onclick="showTab('law')">Law</button>
+
+        <!-- Powers --> 
+        <div id="gojo" class="tab-content">💙 Gojo is the strongest sorcerer with Limitless & Infinity!</div>
+        <div id="luffy" class="tab-content">🍖 Luffy is the future Pirate King with Gear 5 powers!</div>
+        <div id="kakashi" class="tab-content">⚡ Kakashi uses Chidori and Sharingan with elite skills!</div>
+        <div id="zoro" class="tab-content">🗡️ Zoro is the swordsman with three swords and a dream!</div>
+        <div id="kilua" class="tab-content">⚡ Kilua is a master assassin with lightning speed!</div>
+        <div id="law" class="tab-content">⚓ Law is a master tactician with the Ope Ope no Mi!</div>
+    </section>
+
+
+    <section class="power-game">
+        <h2>🎮 Guess the Character Game</h2>
+        <button type="button" id="gameBtn">Start Game</button>
+        <p id="gameMessage">Guess the character!</p> <!-- Add this line -->
+        <div class="game" id="gameContainer">
+            <input type="text" id="guessInput" class="guessInput" placeholder="Enter your guess" />
+            <button type="button" id="submitGuess">Submit Guess</button>
+            <p id="resultMessage"></p>
+            <button type="button" id="resetGame">Reset Game</button>
+        </div>
+    </section>
+
+</main>
+
+    <!-- Form Validation -->
+    <section class="form-section">
+        <h2>📝 Join the Anime Ninjas Academy</h2>
+        <form id="ninjaForm">
+            <input class="form-input" type="text" id="name" placeholder="Name" required />
+            <input class="form-input" type="email" id="email" placeholder="Email" required />
+            <input class="form-input" type="password" id="password" placeholder="Password (min 8 chars)" required />
+            <button type="submit">Join</button>
+            <p id="formFeedback"></p>
+        </form>
+    </section>
+  <footer>
+    <p>&copy; 2025 AnimeVerse Interactive</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

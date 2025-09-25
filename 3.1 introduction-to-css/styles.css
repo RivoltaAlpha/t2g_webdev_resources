@@ -1,0 +1,51 @@
+/* General Styling */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+/* Header Styling */
+.title {
+    color: #133961;
+    font-size: 2em;
+    margin: 20px 0;
+}
+
+/* Navigation Styling */
+nav {
+    background: #471c52;
+    padding: 15px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: bold;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+/* Image Styling */
+.styled-image {
+    width: 300px;
+    height: auto;
+    border: 5px solid #14365a;
+    margin: 20px 0;
+    padding: 10px;
+    background-color: white;
+}
+
+/* Footer Styling */
+#contact {
+    background: #f1f1f1;
+    padding: 10px;
+    border-top: 2px solid #031324;
+    font-weight: bold;
+}
