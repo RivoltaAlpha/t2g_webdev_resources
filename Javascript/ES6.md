@@ -1,552 +1,225 @@
-# ES6 (ECMAScript 2015) Complete Tutorial
+# ES6 Features - Complete Guide
 
-This comprehensive guide covers all essential ES6 features with practical examples and explanations. Before diving into ES6, ensure you have a solid understanding of JavaScript up to ES5.
-
----
-
-## Summary and Best Practices
-
-### ES6 Adoption Guidelines
-
-**When to Use Each Feature:**
-
-1. **Variables**: Use `const` by default, `let` when reassignment is needed, avoid `var`
-2. **Functions**: Use arrow functions for short callbacks, regular functions for methods and constructors
-3. **Objects**: Use object shorthand, destructuring, and spread operator for cleaner code
-4. **Arrays**: Leverage new methods like `find()`, `includes()`, and array destructuring
-5. **Async Code**: Prefer Promises over callbacks, consider async/await for complex chains
-6. **Modules**: Always use ES6 modules for better organization and tree-shaking
-
-### Common Pitfalls to Avoid
-
-```javascript
-// ❌ Don't: Using arrow functions as object methods
-const obj = {
-    name: 'Test',
-    greet: () => console.log(this.name) // `this` is undefined
-};
-
-// ✅ Do: Use regular function methods
-const obj2 = {
-    name: 'Test',
-    greet() { console.log(this.name); }
-};
-
-// ❌ Don't: Destructuring with conflicting names
-// const { name, name } = obj; // SyntaxError
-
-// ✅ Do: Use aliases for conflicting names
-const { name: firstName, name: lastName } = { name: 'John', name: 'Doe' };
-
-// ❌ Don't: Forgetting that const objects are mutable
-const config = { debug: true };
-config.debug = false; // This works!
-
-// ✅ Do: Use Object.freeze() for immutable objects
-const config2 = Object.freeze({ debug: true });
-// config2.debug = false; // This will fail in strict mode
-
-// ❌ Don't: Using for...in with arrays
-const arr = [1, 2, 3];
-for (const index in arr) {
-    console.log(typeof index); // "string", not number!
-}
-
-// ✅ Do: Use for...of with arrays
-for (const value of arr) {
-    console.log(typeof value); // "number"
-}
-```
-
-### Performance Considerations
-
-```javascript
-// Spread operator vs traditional methods
-const largeArray = new Array(1000000).fill(0);
-
-// ❌ Slower for large arrays
-const copy1 = [...largeArray];
-
-// ✅ Faster for large arrays
-const copy2 = largeArray.slice();
-
-// Map vs Object for key-value pairs
-// ✅ Use Map for frequent additions/deletions
-const frequentlyChanging = new Map();
-
-// ✅ Use Object for records with known string keys
-const config = { theme: 'dark', lang: 'en' };
-
-// Set vs Array for unique values
-// ✅ Use Set for uniqueness and fast lookups
-const uniqueIds = new Set();
-
-// ✅ Use Array for ordered collections
-const orderedList = [];
-```
-
-### Modern JavaScript Workflow
-
-```javascript
-// Combining ES6 features effectively
-class DataProcessor {
-    constructor(apiUrl) {
-        this.apiUrl = apiUrl;
-        this.cache = new Map();
-    }
-
-    async fetchData(endpoint, params = {}) {
-        const url = `${this.apiUrl}/${endpoint}`;
-        const cacheKey = `${url}-${JSON.stringify(params)}`;
-        
-        if (this.cache.has(cacheKey)) {
-            return this.cache.get(cacheKey);
-        }
-
-        try {
-            const response = await fetch(url, { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(params)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            this.cache.set(cacheKey, data);
-            return data;
-            
-        } catch (error) {
-            console.error('Fetch failed:', error);
-            throw error;
-        }
-    }
-
-    async processUsers(userIds) {
-        const promises = userIds.map(id => this.fetchData('users', { id }));
-        const results = await Promise.allSettled(promises);
-        
-        return results
-            .filter(result => result.status === 'fulfilled')
-            .map(result => result.value)
-            .filter(user => user && user.active);
-    }
-
-    // Using generator for pagination
-    async* paginateData(endpoint, pageSize = 10) {
-        let page = 1;
-        let hasMore = true;
-
-        while (hasMore) {
-            const data = await this.fetchData(endpoint, { page, pageSize });
-            
-            if (data.items && data.items.length > 0) {
-                yield* data.items;
-                page++;
-                hasMore = data.items.length === pageSize;
-            } else {
-                hasMore = false;
-            }
-        }
-    }
-}
-
-// Usage example
-const processor = new DataProcessor('https://api.example.com');
-
-// Process users with error handling
-processor.processUsers([1, 2, 3, 4, 5])
-    .then(users => {
-        const { activeUsers, inactiveUsers } = users.reduce(
-            (acc, user) => {
-                const key = user.active ? 'activeUsers' : 'inactiveUsers';
-                acc[key].push(user);
-                return acc;
-            },
-            { activeUsers: [], inactiveUsers: [] }
-        );
-        
-        console.log(`Found ${activeUsers.length} active users`);
-    })
-    .catch(error => console.error('Processing failed:', error));
-
-// Async iteration example
-async function loadAllData() {
-    const allData = [];
-    
-    for await (const item of processor.paginateData('products')) {
-        allData.push(item);
-        
-        // Process in batches to avoid memory issues
-        if (allData.length >= 100) {
-            console.log(`Processed ${allData.length} items so far...`);
-        }
-    }
-    
-    return allData;
-}
-```
-
-### Browser Support and Transpilation
-
-Most ES6 features are well-supported in modern browsers, but for older browser support:
-
-```javascript
-// Use Babel for transpilation
-// .babelrc example:
-{
-  "presets": [
-    ["@babel/preset-env", {
-      "targets": {
-        "browsers": ["last 2 versions", "ie >= 11"]
-      }
-    }]
-  ]
-}
-
-// Polyfills for missing features
-// Include in your HTML or bundle:
-// <script src="https://polyfill.io/v3/polyfill.min.js"></script>
-
-// Feature detection
-if (typeof Symbol !== 'undefined') {
-    // Use Symbol features
-} else {
-    // Fallback for older browsers
-}
-
-// Progressive enhancement
-const supportsES6 = (() => {
-    try {
-        new Function('(a = 0) => a');
-        return true;
-    } catch (e) {
-        return false;
-    }
-})();
-
-if (supportsES6) {
-    // Use ES6 features
-} else {
-    // Load ES5 fallback
-}
-```
-
-### Testing ES6 Code
-
-```javascript
-// Example using Jest
-describe('ES6 Features', () => {
-    test('arrow functions preserve this context', () => {
-        const obj = {
-            name: 'Test',
-            getName: function() {
-                const arrow = () => this.name;
-                return arrow();
-            }
-        };
-        
-        expect(obj.getName()).toBe('Test');
-    });
-
-    test('destructuring works correctly', () => {
-        const [a, b, ...rest] = [1, 2, 3, 4, 5];
-        
-        expect(a).toBe(1);
-        expect(b).toBe(2);
-        expect(rest).toEqual([3, 4, 5]);
-    });
-
-    test('async/await handles promises', async () => {
-        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-        
-        const start = Date.now();
-        await delay(100);
-        const elapsed = Date.now() - start;
-        
-        expect(elapsed).toBeGreaterThanOrEqual(100);
-    });
-});
-```
+A comprehensive guide to ECMAScript 6 (ES6) features with simple, practical examples.
 
 ---
 
-## Conclusion
+## Section 1: New ES6 Syntax
 
-ES6 introduced powerful features that make JavaScript more expressive, readable, and maintainable. Key takeaways:
+### let – Block-Scoped Variables
 
-1. **Modern Syntax**: Use `let`/`const`, arrow functions, and template literals for cleaner code
-2. **Better Data Structures**: Leverage Maps, Sets, and enhanced arrays for better performance
-3. **Async Programming**: Master Promises and async patterns for handling asynchronous operations
-4. **Code Organization**: Use modules and classes to structure large applications
-5. **Functional Programming**: Embrace destructuring, spread operator, and array methods
-
-Practice these concepts regularly and gradually incorporate them into your projects. The combination of these features enables you to write more robust and maintainable JavaScript applications.
-
-### Further Learning
-
-- **Next Steps**: Learn ES2017+ features (async/await, Object.entries, etc.)
-- **Tools**: Explore Babel, ESLint, and modern build tools
-- **Frameworks**: Apply ES6 knowledge in React, Vue, or other frameworks
-- **Best Practices**: Study style guides (Airbnb, Google) for consistent ES6 usage
-
-Happy coding with ES6! 🚀 Section 1: New ES6 Syntax
-
-### `let` - Block-Scoped Variables
-
-The `let` keyword allows you to declare variables that are limited to the scope of a block statement.
+The `let` keyword declares variables that are limited to the scope of a block statement.
 
 ```javascript
-// Block scope example
+// let is block-scoped
 if (true) {
-    let blockScoped = "I'm block scoped";
-    console.log(blockScoped); // "I'm block scoped"
+  let x = 10;
+  console.log(x); // 10
 }
-// console.log(blockScoped); // ReferenceError: blockScoped is not defined
+// console.log(x); // ReferenceError: x is not defined
 
-// Loop example
+// Works in loops
 for (let i = 0; i < 3; i++) {
-    console.log(i); // 0, 1, 2
+  console.log(i); // 0, 1, 2
 }
 // console.log(i); // ReferenceError: i is not defined
 ```
 
-### `let` vs `var` - Key Differences
+### let vs. var – Key Differences
 
-Understanding the differences between `let` and `var` is crucial for modern JavaScript development.
+`var` is function-scoped, while `let` is block-scoped. `var` also has hoisting behavior.
 
 ```javascript
-// 1. Scope difference
-function scopeExample() {
-    if (true) {
-        var varVariable = "var is function scoped";
-        let letVariable = "let is block scoped";
-    }
-    console.log(varVariable); // "var is function scoped" - accessible
-    // console.log(letVariable); // ReferenceError - not accessible
+// var is function-scoped
+function varExample() {
+  if (true) {
+    var x = 10;
+  }
+  console.log(x); // 10 - accessible outside block
 }
 
-// 2. Hoisting difference
-console.log(varHoisted); // undefined (hoisted but not initialized)
-// console.log(letHoisted); // ReferenceError (temporal dead zone)
+// let is block-scoped
+function letExample() {
+  if (true) {
+    let y = 10;
+  }
+  // console.log(y); // ReferenceError
+}
 
-var varHoisted = "var";
-let letHoisted = "let";
+// var hoisting
+console.log(a); // undefined (hoisted)
+var a = 5;
 
-// 3. Re-declaration
-var name = "John";
-var name = "Jane"; // No error
-
-let age = 25;
-// let age = 30; // SyntaxError: Identifier 'age' has already been declared
+// let doesn't hoist the same way
+// console.log(b); // ReferenceError (temporal dead zone)
+let b = 5;
 ```
 
-### `const` - Constants
+### const – Constants
 
-The `const` keyword creates constants that cannot be reassigned after declaration.
+`const` declares constants that cannot be reassigned (though objects/arrays can be mutated).
 
 ```javascript
-// Basic const usage
 const PI = 3.14159;
-console.log(PI); // 3.14159
-
 // PI = 3.14; // TypeError: Assignment to constant variable
 
-// const with objects (contents can be modified)
-const person = {
-    name: "Alice",
-    age: 30
-};
-
-person.age = 31; // This is allowed
-person.city = "New York"; // This is allowed
-console.log(person); // { name: "Alice", age: 31, city: "New York" }
-
+// Object properties can be changed
+const person = { name: 'Alice' };
+person.name = 'Bob'; // This works
+person.age = 30; // This works
 // person = {}; // TypeError: Assignment to constant variable
 
-// const with arrays
-const colors = ["red", "green", "blue"];
-colors.push("yellow"); // This is allowed
-console.log(colors); // ["red", "green", "blue", "yellow"]
-
-// colors = []; // TypeError: Assignment to constant variable
+// Array elements can be changed
+const numbers = [1, 2, 3];
+numbers.push(4); // This works
+// numbers = []; // TypeError: Assignment to constant variable
 ```
 
 ### Default Function Parameters
 
-Set default values for function parameters when no argument is provided.
+Set default values for function parameters when no value is provided.
 
 ```javascript
-// Basic default parameters
-function greet(name = "World", greeting = "Hello") {
-    return `${greeting}, ${name}!`;
+function greet(name = 'Guest', greeting = 'Hello') {
+  return `${greeting}, ${name}!`;
 }
 
-console.log(greet()); // "Hello, World!"
-console.log(greet("Alice")); // "Hello, Alice!"
-console.log(greet("Bob", "Hi")); // "Hi, Bob!"
+console.log(greet()); // "Hello, Guest!"
+console.log(greet('Alice')); // "Hello, Alice!"
+console.log(greet('Bob', 'Hi')); // "Hi, Bob!"
 
-// Default parameters with expressions
-function createUser(name, role = "user", id = Math.random()) {
-    return { name, role, id };
+// Default can reference other parameters
+function createURL(domain, path = '/home', protocol = 'https') {
+  return `${protocol}://${domain}${path}`;
 }
 
-console.log(createUser("John")); // { name: "John", role: "user", id: 0.123... }
-
-// Using previous parameters in defaults
-function multiply(a, b = a * 2) {
-    return a * b;
-}
-
-console.log(multiply(5)); // 50 (5 * 10)
-console.log(multiply(5, 3)); // 15 (5 * 3)
+console.log(createURL('example.com')); // "https://example.com/home"
 ```
 
 ### Rest Parameter
 
-The rest parameter allows you to represent an indefinite number of arguments as an array.
+Collect all remaining arguments into an array using `...` syntax.
 
 ```javascript
-// Basic rest parameter
 function sum(...numbers) {
-    return numbers.reduce((total, num) => total + num, 0);
+  return numbers.reduce((total, num) => total + num, 0);
 }
 
-console.log(sum(1, 2, 3, 4)); // 10
-console.log(sum(10, 20)); // 30
+console.log(sum(1, 2, 3)); // 6
+console.log(sum(1, 2, 3, 4, 5)); // 15
 
-// Rest parameter with other parameters
-function introduce(firstName, lastName, ...hobbies) {
-    console.log(`Hi, I'm ${firstName} ${lastName}`);
-    console.log(`My hobbies are: ${hobbies.join(", ")}`);
+// Rest parameter must be last
+function logInfo(first, second, ...others) {
+  console.log('First:', first);
+  console.log('Second:', second);
+  console.log('Others:', others);
 }
 
-introduce("John", "Doe", "reading", "swimming", "coding");
-// Hi, I'm John Doe
-// My hobbies are: reading, swimming, coding
-
-// Rest parameter in arrow functions
-const multiply = (...args) => args.reduce((acc, val) => acc * val, 1);
-console.log(multiply(2, 3, 4)); // 24
+logInfo('a', 'b', 'c', 'd', 'e');
+// First: a
+// Second: b
+// Others: ['c', 'd', 'e']
 ```
 
 ### Spread Operator
 
-The spread operator expands iterables into individual elements.
+Expand an array or object into individual elements using `...` syntax.
 
 ```javascript
-// Spreading arrays
+// Spread in arrays
 const arr1 = [1, 2, 3];
 const arr2 = [4, 5, 6];
 const combined = [...arr1, ...arr2];
 console.log(combined); // [1, 2, 3, 4, 5, 6]
 
-// Spreading in function calls
-function add(a, b, c) {
-    return a + b + c;
-}
-const numbers = [1, 2, 3];
-console.log(add(...numbers)); // 6
-
-// Spreading objects
-const person = { name: "John", age: 30 };
-const employee = { ...person, job: "Developer", age: 31 };
-console.log(employee); // { name: "John", age: 31, job: "Developer" }
-
-// Copying arrays
+// Copy arrays
 const original = [1, 2, 3];
 const copy = [...original];
-copy.push(4);
-console.log(original); // [1, 2, 3] (unchanged)
-console.log(copy); // [1, 2, 3, 4]
+
+// Spread in function calls
+const numbers = [5, 10, 15];
+console.log(Math.max(...numbers)); // 15
+
+// Spread in objects
+const person = { name: 'Alice', age: 25 };
+const employee = { ...person, role: 'Developer' };
+console.log(employee); // { name: 'Alice', age: 25, role: 'Developer' }
 ```
 
 ### Object Literal Syntax Extensions
 
-ES6 provides shorthand syntax for object properties and methods.
+Enhanced object literal syntax for cleaner code.
 
 ```javascript
-const name = "Alice";
-const age = 30;
+const name = 'Alice';
+const age = 25;
 
 // Property shorthand
-const person = { name, age }; // Same as { name: name, age: age }
-console.log(person); // { name: "Alice", age: 30 }
+const person = { name, age };
+console.log(person); // { name: 'Alice', age: 25 }
 
 // Method shorthand
 const calculator = {
-    add(a, b) { // Same as add: function(a, b)
-        return a + b;
-    },
-    multiply(a, b) {
-        return a * b;
-    }
+  add(a, b) {
+    return a + b;
+  },
+  multiply(a, b) {
+    return a * b;
+  }
 };
 
-console.log(calculator.add(5, 3)); // 8
+console.log(calculator.add(2, 3)); // 5
 
 // Computed property names
-const prop = "dynamicKey";
-const obj = {
-    [prop]: "value",
-    [`${prop}2`]: "another value"
+const propName = 'score';
+const game = {
+  [propName]: 100,
+  ['level' + '1']: 'easy'
 };
-console.log(obj); // { dynamicKey: "value", dynamicKey2: "another value" }
+console.log(game); // { score: 100, level1: 'easy' }
 ```
 
-### `for...of` Loop
+### for...of – Iterate Over Iterables
 
-Iterate over iterable objects like arrays, strings, maps, and sets.
+Loop through iterable objects like arrays, strings, maps, and sets.
 
 ```javascript
-// Iterating over arrays
-const fruits = ["apple", "banana", "orange"];
-for (const fruit of fruits) {
-    console.log(fruit);
+// Array iteration
+const colors = ['red', 'green', 'blue'];
+for (const color of colors) {
+  console.log(color);
 }
-// apple
-// banana
-// orange
+// red, green, blue
 
-// Iterating over strings
-for (const char of "Hello") {
-    console.log(char);
+// String iteration
+const str = 'Hello';
+for (const char of str) {
+  console.log(char);
 }
-// H e l l o
+// H, e, l, l, o
 
-// Getting index with entries()
+// With entries
+const fruits = ['apple', 'banana', 'cherry'];
 for (const [index, fruit] of fruits.entries()) {
-    console.log(`${index}: ${fruit}`);
+  console.log(`${index}: ${fruit}`);
 }
-// 0: apple
-// 1: banana
-// 2: orange
-
-// Iterating over Maps
-const map = new Map([["a", 1], ["b", 2]]);
-for (const [key, value] of map) {
-    console.log(`${key}: ${value}`);
-}
-// a: 1
-// b: 2
+// 0: apple, 1: banana, 2: cherry
 ```
 
 ### Octal and Binary Literals
 
-ES6 provides new syntax for representing binary and octal numbers.
+New syntax for representing octal and binary numbers.
 
 ```javascript
-// Binary literals (0b prefix)
-const binary = 0b1010; // 10 in decimal
+// Binary literals (prefix: 0b or 0B)
+const binary = 0b1010;
 console.log(binary); // 10
 
-// Octal literals (0o prefix)
-const octal = 0o755; // 493 in decimal
+// Octal literals (prefix: 0o or 0O)
+const octal = 0o755;
 console.log(octal); // 493
 
-// Converting to different bases
+// Convert to different bases
 const num = 255;
 console.log(num.toString(2)); // "11111111" (binary)
 console.log(num.toString(8)); // "377" (octal)
@@ -555,38 +228,41 @@ console.log(num.toString(16)); // "ff" (hexadecimal)
 
 ### Template Literals
 
-Template literals provide an easy way to create multiline strings and embed expressions.
+String literals with embedded expressions using backticks.
 
 ```javascript
 // Basic template literal
-const name = "World";
+const name = 'Alice';
 const greeting = `Hello, ${name}!`;
-console.log(greeting); // "Hello, World!"
+console.log(greeting); // "Hello, Alice!"
 
-// Multiline strings
-const multiline = `
-    This is a
-    multiline
-    string
-`;
-console.log(multiline);
+// Multi-line strings
+const message = `This is line 1
+This is line 2
+This is line 3`;
 
-// Expression evaluation
+// Expressions in templates
 const a = 5;
 const b = 10;
-console.log(`${a} + ${b} = ${a + b}`); // "5 + 10 = 15"
+console.log(`Sum: ${a + b}`); // "Sum: 15"
 
-// Tagged template literals
+// Function calls in templates
+function getPrice() {
+  return 99.99;
+}
+console.log(`Price: $${getPrice()}`); // "Price: $99.99"
+
+// Tagged templates
 function highlight(strings, ...values) {
-    return strings.reduce((result, string, i) => {
-        return result + string + (values[i] ? `<strong>${values[i]}</strong>` : '');
-    }, '');
+  return strings.reduce((result, str, i) => {
+    return result + str + (values[i] ? `<strong>${values[i]}</strong>` : '');
+  }, '');
 }
 
-const user = "Alice";
-const score = 95;
-const message = highlight`User ${user} scored ${score} points!`;
-console.log(message); // "User <strong>Alice</strong> scored <strong>95</strong> points!"
+const product = 'laptop';
+const price = 999;
+console.log(highlight`Product: ${product}, Price: ${price}`);
+// "Product: <strong>laptop</strong>, Price: <strong>999</strong>"
 ```
 
 ---
@@ -599,37 +275,30 @@ Extract values from arrays and assign them to variables.
 
 ```javascript
 // Basic array destructuring
-const colors = ["red", "green", "blue"];
-const [first, second, third] = colors;
-console.log(first); // "red"
-console.log(second); // "green"
-console.log(third); // "blue"
+const [a, b, c] = [1, 2, 3];
+console.log(a); // 1
+console.log(b); // 2
+console.log(c); // 3
 
-// Skipping elements
-const [primary, , tertiary] = colors;
-console.log(primary); // "red"
-console.log(tertiary); // "blue"
+// Skip elements
+const [first, , third] = [1, 2, 3];
+console.log(first); // 1
+console.log(third); // 3
 
-// Default values
-const [a, b, c, d = "yellow"] = colors;
-console.log(d); // "yellow"
-
-// Rest in destructuring
-const numbers = [1, 2, 3, 4, 5];
-const [head, ...tail] = numbers;
+// Rest pattern
+const [head, ...tail] = [1, 2, 3, 4, 5];
 console.log(head); // 1
 console.log(tail); // [2, 3, 4, 5]
 
-// Swapping variables
-let x = 1;
-let y = 2;
-[x, y] = [y, x];
-console.log(x, y); // 2, 1
+// Default values
+const [x = 10, y = 20] = [5];
+console.log(x); // 5
+console.log(y); // 20
 
-// Nested array destructuring
-const nested = [[1, 2], [3, 4]];
-const [[a1, a2], [b1, b2]] = nested;
-console.log(a1, a2, b1, b2); // 1, 2, 3, 4
+// Swapping variables
+let m = 1, n = 2;
+[m, n] = [n, m];
+console.log(m, n); // 2, 1
 ```
 
 ### Object Destructuring
@@ -638,51 +307,39 @@ Extract properties from objects and assign them to variables.
 
 ```javascript
 // Basic object destructuring
-const person = { name: "Alice", age: 30, city: "New York" };
-const { name, age, city } = person;
+const person = { name: 'Alice', age: 25, city: 'NYC' };
+const { name, age } = person;
 console.log(name); // "Alice"
-console.log(age); // 30
+console.log(age); // 25
 
-// Renaming variables
-const { name: personName, age: personAge } = person;
-console.log(personName); // "Alice"
-console.log(personAge); // 30
+// Different variable names
+const { name: fullName, age: years } = person;
+console.log(fullName); // "Alice"
+console.log(years); // 25
 
 // Default values
-const { name: n, job = "Unemployed" } = person;
-console.log(n); // "Alice"
-console.log(job); // "Unemployed"
+const { name: n, country = 'USA' } = person;
+console.log(country); // "USA"
 
-// Nested object destructuring
+// Nested destructuring
 const user = {
-    id: 1,
-    profile: {
-        firstName: "John",
-        lastName: "Doe",
-        social: {
-            twitter: "@johndoe"
-        }
-    }
+  id: 1,
+  profile: {
+    username: 'alice123',
+    email: 'alice@example.com'
+  }
 };
 
-const {
-    profile: {
-        firstName,
-        lastName,
-        social: { twitter }
-    }
-} = user;
+const { profile: { username, email } } = user;
+console.log(username); // "alice123"
+console.log(email); // "alice@example.com"
 
-console.log(firstName); // "John"
-console.log(lastName); // "Doe"
-console.log(twitter); // "@johndoe"
-
-// Function parameter destructuring
-function displayUser({ name, age, email = "N/A" }) {
-    console.log(`Name: ${name}, Age: ${age}, Email: ${email}`);
+// Function parameters
+function displayPerson({ name, age, city = 'Unknown' }) {
+  console.log(`${name}, ${age}, from ${city}`);
 }
 
-displayUser({ name: "Bob", age: 25 }); // Name: Bob, Age: 25, Email: N/A
+displayPerson(person); // "Alice, 25, from NYC"
 ```
 
 ---
@@ -691,204 +348,175 @@ displayUser({ name: "Bob", age: 25 }); // Name: Bob, Age: 25, Email: N/A
 
 ### ES6 Modules
 
-ES6 modules provide a standardized way to organize and share code between files.
+Organize code into reusable modules with `import` and `export`.
 
-**math.js (exporting module)**
 ```javascript
-// Named exports
-export const PI = 3.14159;
-export const E = 2.71828;
-
+// math.js - Named exports
 export function add(a, b) {
-    return a + b;
+  return a + b;
 }
 
-export function multiply(a, b) {
-    return a * b;
+export function subtract(a, b) {
+  return a - b;
 }
 
-// Alternative export syntax
-const subtract = (a, b) => a - b;
-const divide = (a, b) => a / b;
+export const PI = 3.14159;
 
-export { subtract, divide };
-
-// Default export
-export default class Calculator {
-    constructor() {
-        this.result = 0;
-    }
-    
-    add(num) {
-        this.result += num;
-        return this;
-    }
-    
-    getResult() {
-        return this.result;
-    }
-}
-```
-
-**main.js (importing module)**
-```javascript
-// Named imports
-import { add, multiply, PI } from './math.js';
+// main.js - Import named exports
+import { add, subtract, PI } from './math.js';
 console.log(add(5, 3)); // 8
 console.log(PI); // 3.14159
 
-// Importing with aliases
-import { subtract as minus, divide as div } from './math.js';
-console.log(minus(10, 4)); // 6
+// Import with alias
+import { add as sum } from './math.js';
+console.log(sum(5, 3)); // 8
 
-// Import all named exports
-import * as Math from './math.js';
-console.log(Math.add(2, 3)); // 5
+// Import all as namespace
+import * as MathUtils from './math.js';
+console.log(MathUtils.add(5, 3)); // 8
 
-// Default import
-import Calculator from './math.js';
+// calculator.js - Default export
+export default class Calculator {
+  add(a, b) {
+    return a + b;
+  }
+}
+
+// main.js - Import default export
+import Calculator from './calculator.js';
 const calc = new Calculator();
-console.log(calc.add(10).add(5).getResult()); // 15
+console.log(calc.add(5, 3)); // 8
 
-// Mixed imports
-import Calculator, { PI, add } from './math.js';
+// Mixing default and named exports
+// utils.js
+export default function log(message) {
+  console.log(message);
+}
+
+export const version = '1.0.0';
+
+// main.js
+import log, { version } from './utils.js';
+log(`Version: ${version}`);
 ```
 
 ---
 
 ## Section 4: ES6 Classes
 
-### Class Declaration
+### Class – Basic Syntax
 
-ES6 classes provide a cleaner syntax for creating constructor functions and prototypes.
+Define classes using the `class` keyword.
 
 ```javascript
-// Basic class declaration
 class Person {
-    constructor(name, age) {
-        this.name = name;
-        this.age = age;
-    }
-    
-    introduce() {
-        return `Hi, I'm ${this.name} and I'm ${this.age} years old`;
-    }
-    
-    haveBirthday() {
-        this.age++;
-        return `Happy birthday! Now I'm ${this.age}`;
-    }
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+
+  greet() {
+    return `Hello, my name is ${this.name}`;
+  }
+
+  getAge() {
+    return this.age;
+  }
 }
 
-const person1 = new Person("Alice", 30);
-console.log(person1.introduce()); // "Hi, I'm Alice and I'm 30 years old"
-console.log(person1.haveBirthday()); // "Happy birthday! Now I'm 31"
+const alice = new Person('Alice', 25);
+console.log(alice.greet()); // "Hello, my name is Alice"
+console.log(alice.getAge()); // 25
 ```
 
 ### Getters and Setters
 
-Define accessor properties using `get` and `set` keywords.
+Define accessors using `get` and `set` keywords.
 
 ```javascript
-class Circle {
-    constructor(radius) {
-        this._radius = radius;
+class Rectangle {
+  constructor(width, height) {
+    this._width = width;
+    this._height = height;
+  }
+
+  get width() {
+    return this._width;
+  }
+
+  set width(value) {
+    if (value > 0) {
+      this._width = value;
     }
-    
-    // Getter
-    get radius() {
-        return this._radius;
-    }
-    
-    // Setter
-    set radius(value) {
-        if (value <= 0) {
-            throw new Error("Radius must be positive");
-        }
-        this._radius = value;
-    }
-    
-    get area() {
-        return Math.PI * this._radius ** 2;
-    }
-    
-    get circumference() {
-        return 2 * Math.PI * this._radius;
-    }
+  }
+
+  get area() {
+    return this._width * this._height;
+  }
 }
 
-const circle = new Circle(5);
-console.log(circle.radius); // 5
-console.log(circle.area); // 78.53981633974483
+const rect = new Rectangle(10, 5);
+console.log(rect.width); // 10
+console.log(rect.area); // 50
 
-circle.radius = 10;
-console.log(circle.area); // 314.1592653589793
-
-// circle.radius = -5; // Error: Radius must be positive
+rect.width = 15;
+console.log(rect.area); // 75
 ```
 
 ### Class Expression
 
-Define classes using class expressions.
+Define classes using expressions.
 
 ```javascript
-// Named class expression
-const Rectangle = class Shape {
-    constructor(width, height) {
-        this.width = width;
-        this.height = height;
-    }
-    
-    getArea() {
-        return this.width * this.height;
-    }
-};
-
 // Anonymous class expression
-const Square = class {
-    constructor(side) {
-        this.side = side;
-    }
-    
-    getArea() {
-        return this.side ** 2;
-    }
+const Person = class {
+  constructor(name) {
+    this.name = name;
+  }
+
+  greet() {
+    return `Hello, ${this.name}`;
+  }
 };
 
-const rect = new Rectangle(5, 10);
-console.log(rect.getArea()); // 50
+const alice = new Person('Alice');
+console.log(alice.greet()); // "Hello, Alice"
 
-const square = new Square(4);
-console.log(square.getArea()); // 16
+// Named class expression
+const Employee = class EmployeeClass {
+  constructor(name, role) {
+    this.name = name;
+    this.role = role;
+  }
+};
+
+const bob = new Employee('Bob', 'Developer');
+console.log(bob.role); // "Developer"
 ```
 
 ### Static Methods
 
-Define methods that belong to the class itself, not its instances.
+Define methods that belong to the class itself, not instances.
 
 ```javascript
 class MathUtils {
-    static add(a, b) {
-        return a + b;
-    }
-    
-    static multiply(a, b) {
-        return a * b;
-    }
-    
-    static factorial(n) {
-        if (n <= 1) return 1;
-        return n * this.factorial(n - 1);
-    }
+  static add(a, b) {
+    return a + b;
+  }
+
+  static multiply(a, b) {
+    return a * b;
+  }
+
+  static PI = 3.14159;
 }
 
-// Call static methods on the class
 console.log(MathUtils.add(5, 3)); // 8
-console.log(MathUtils.factorial(5)); // 120
+console.log(MathUtils.multiply(4, 2)); // 8
 
-// Cannot call on instances
-const utils = new MathUtils();
-// console.log(utils.add(2, 3)); // TypeError: utils.add is not a function
+// Cannot call on instance
+const util = new MathUtils();
+// util.add(5, 3); // TypeError: util.add is not a function
 ```
 
 ### Static Properties
@@ -897,300 +525,265 @@ Define properties shared by all instances of a class.
 
 ```javascript
 class Counter {
-    static count = 0;
-    static instances = [];
-    
-    constructor(name) {
-        this.name = name;
-        Counter.count++;
-        Counter.instances.push(this);
-    }
-    
-    static getCount() {
-        return Counter.count;
-    }
-    
-    static getAllInstances() {
-        return Counter.instances;
-    }
+  static count = 0;
+
+  constructor() {
+    Counter.count++;
+  }
+
+  static getCount() {
+    return Counter.count;
+  }
 }
 
-const counter1 = new Counter("First");
-const counter2 = new Counter("Second");
+new Counter();
+new Counter();
+new Counter();
 
-console.log(Counter.getCount()); // 2
-console.log(Counter.getAllInstances().length); // 2
+console.log(Counter.getCount()); // 3
+console.log(Counter.count); // 3
 ```
 
-### Computed Properties
+### Computed Property
 
-Use expressions as property names in class definitions.
+Use expressions as property names in classes.
 
 ```javascript
-const methodName = "greet";
-const propName = "name";
+const methodName = 'sayHello';
+const propName = 'fullName';
 
-class DynamicClass {
-    constructor(name) {
-        this[propName] = name;
-    }
-    
-    [methodName]() {
-        return `Hello, ${this[propName]}!`;
-    }
-    
-    [`${methodName}Loudly`]() {
-        return this[methodName]().toUpperCase();
-    }
+class Person {
+  constructor(firstName, lastName) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+  }
+
+  [methodName]() {
+    return `Hello from ${this.firstName}`;
+  }
+
+  get [propName]() {
+    return `${this.firstName} ${this.lastName}`;
+  }
 }
 
-const obj = new DynamicClass("Alice");
-console.log(obj.greet()); // "Hello, Alice!"
-console.log(obj.greetLoudly()); // "HELLO, ALICE!"
+const person = new Person('Alice', 'Smith');
+console.log(person.sayHello()); // "Hello from Alice"
+console.log(person.fullName); // "Alice Smith"
 ```
 
 ### Inheritance
 
-Extend classes using `extends` and `super` keywords.
+Extend classes using `extends` and call parent methods with `super`.
 
 ```javascript
-// Base class
 class Animal {
-    constructor(name, species) {
-        this.name = name;
-        this.species = species;
-    }
-    
-    makeSound() {
-        return "Some generic animal sound";
-    }
-    
-    introduce() {
-        return `I'm ${this.name}, a ${this.species}`;
-    }
+  constructor(name) {
+    this.name = name;
+  }
+
+  speak() {
+    return `${this.name} makes a sound`;
+  }
 }
 
-// Derived class
 class Dog extends Animal {
-    constructor(name, breed) {
-        super(name, "dog"); // Call parent constructor
-        this.breed = breed;
-    }
-    
-    makeSound() {
-        return "Woof!";
-    }
-    
-    introduce() {
-        return `${super.introduce()} of breed ${this.breed}`;
-    }
-    
-    wagTail() {
-        return `${this.name} is wagging tail happily!`;
-    }
+  constructor(name, breed) {
+    super(name); // Call parent constructor
+    this.breed = breed;
+  }
+
+  speak() {
+    return `${this.name} barks`;
+  }
+
+  getInfo() {
+    return `${super.speak()} and is a ${this.breed}`;
+  }
 }
 
-const dog = new Dog("Buddy", "Golden Retriever");
-console.log(dog.introduce()); // "I'm Buddy, a dog of breed Golden Retriever"
-console.log(dog.makeSound()); // "Woof!"
-console.log(dog.wagTail()); // "Buddy is wagging tail happily!"
+const dog = new Dog('Buddy', 'Golden Retriever');
+console.log(dog.speak()); // "Buddy barks"
+console.log(dog.getInfo()); // "Buddy makes a sound and is a Golden Retriever"
 ```
 
-### `new.target` Metaproperty
+### new.target – Constructor Detection
 
-The `new.target` metaproperty detects whether a function was called with `new`.
+`new.target` is a metaproperty that references the constructor called with `new`.
 
 ```javascript
-class MyClass {
-    constructor() {
-        console.log(new.target); // Points to the constructor being called
-        console.log(new.target.name); // Class name
+class Person {
+  constructor(name) {
+    if (new.target === Person) {
+      console.log('Person constructor called');
     }
+    this.name = name;
+  }
 }
 
-class ExtendedClass extends MyClass {
-    constructor() {
-        super();
+class Employee extends Person {
+  constructor(name, role) {
+    super(name);
+    if (new.target === Employee) {
+      console.log('Employee constructor called');
     }
+    this.role = role;
+  }
 }
 
-new MyClass(); // Logs: [class MyClass] and "MyClass"
-new ExtendedClass(); // Logs: [class ExtendedClass] and "ExtendedClass"
+const person = new Person('Alice');
+// "Person constructor called"
 
-// Abstract class pattern using new.target
-class AbstractClass {
-    constructor() {
-        if (new.target === AbstractClass) {
-            throw new Error("Cannot instantiate abstract class");
-        }
+const employee = new Employee('Bob', 'Developer');
+// "Employee constructor called"
+
+// Prevent direct instantiation
+class Abstract {
+  constructor() {
+    if (new.target === Abstract) {
+      throw new Error('Cannot instantiate abstract class');
     }
+  }
 }
 
-class ConcreteClass extends AbstractClass {
-    constructor() {
-        super();
-    }
-}
-
-// new AbstractClass(); // Error: Cannot instantiate abstract class
-const concrete = new ConcreteClass(); // Works fine
+// new Abstract(); // Error: Cannot instantiate abstract class
 ```
 
 ---
 
 ## Section 5: Arrow Functions
 
-### Arrow Functions Syntax
+### Arrow Functions
 
-Arrow functions provide a shorter syntax for writing functions.
+Concise syntax for writing functions using `=>`.
 
 ```javascript
 // Traditional function
-const add1 = function(a, b) {
-    return a + b;
-};
+function add(a, b) {
+  return a + b;
+}
 
 // Arrow function
-const add2 = (a, b) => a + b;
+const add = (a, b) => a + b;
 
-// Arrow function with single parameter (parentheses optional)
+console.log(add(5, 3)); // 8
+
+// Single parameter (parentheses optional)
 const square = x => x * x;
+console.log(square(4)); // 16
 
-// Arrow function with no parameters
-const greet = () => "Hello, World!";
+// No parameters
+const greet = () => 'Hello!';
+console.log(greet()); // "Hello!"
 
-// Arrow function with multiple statements
-const processData = (data) => {
-    const processed = data.map(x => x * 2);
-    return processed.filter(x => x > 10);
+// Multiple statements (need braces and return)
+const calculate = (a, b) => {
+  const sum = a + b;
+  const product = a * b;
+  return { sum, product };
 };
 
-console.log(add2(3, 4)); // 7
-console.log(square(5)); // 25
-console.log(greet()); // "Hello, World!"
-console.log(processData([2, 5, 8, 12])); // [16, 24]
+console.log(calculate(3, 4)); // { sum: 7, product: 12 }
 
-// Arrow functions in array methods
-const numbers = [1, 2, 3, 4, 5];
-const doubled = numbers.map(n => n * 2);
-const evens = numbers.filter(n => n % 2 === 0);
-const sum = numbers.reduce((acc, n) => acc + n, 0);
-
-console.log(doubled); // [2, 4, 6, 8, 10]
-console.log(evens); // [2, 4]
-console.log(sum); // 15
+// Returning objects (wrap in parentheses)
+const makePerson = (name, age) => ({ name, age });
+console.log(makePerson('Alice', 25)); // { name: 'Alice', age: 25 }
 ```
 
-### When NOT to Use Arrow Functions
+### Arrow Functions: When You Should Not Use
 
-Arrow functions don't have their own `this` context and other limitations.
+Arrow functions don't have their own `this`, `arguments`, or `super` binding.
 
 ```javascript
-// 1. Object methods (this binding issue)
+// DON'T use as object methods (this binding issue)
 const person = {
-    name: "Alice",
-    // DON'T: Arrow function
-    greetArrow: () => {
-        console.log(`Hello, I'm ${this.name}`); // undefined (this is not person)
-    },
-    // DO: Regular function
-    greetRegular() {
-        console.log(`Hello, I'm ${this.name}`); // "Hello, I'm Alice"
-    }
+  name: 'Alice',
+  greet: () => {
+    console.log(`Hello, ${this.name}`); // 'this' is not person
+  }
+};
+person.greet(); // "Hello, undefined"
+
+// DO use regular function
+const person2 = {
+  name: 'Alice',
+  greet() {
+    console.log(`Hello, ${this.name}`);
+  }
+};
+person2.greet(); // "Hello, Alice"
+
+// DON'T use as constructors
+const Person = (name) => {
+  this.name = name;
+};
+// new Person('Alice'); // TypeError: Person is not a constructor
+
+// DON'T use when you need arguments object
+const logArgs = () => {
+  console.log(arguments); // ReferenceError: arguments is not defined
 };
 
-person.greetArrow(); // "Hello, I'm undefined"
-person.greetRegular(); // "Hello, I'm Alice"
+// DO use rest parameters instead
+const logArgs2 = (...args) => {
+  console.log(args);
+};
+logArgs2(1, 2, 3); // [1, 2, 3]
 
-// 2. Event handlers (when you need this to be the element)
-// DON'T:
+// DON'T use for event handlers that need 'this'
 // button.addEventListener('click', () => {
-//     this.style.backgroundColor = 'red'; // this is not the button
+//   this.classList.toggle('active'); // 'this' is not the button
 // });
 
-// DO:
+// DO use regular function
 // button.addEventListener('click', function() {
-//     this.style.backgroundColor = 'red'; // this is the button
+//   this.classList.toggle('active'); // 'this' is the button
 // });
-
-// 3. Constructors (arrow functions can't be constructors)
-// DON'T:
-// const Person = (name) => {
-//     this.name = name; // TypeError: cannot set property of undefined
-// };
-
-// DO:
-function Person(name) {
-    this.name = name;
-}
-
-// 4. Functions that need arguments object
-// DON'T:
-// const showArgs = () => {
-//     console.log(arguments); // ReferenceError: arguments is not defined
-// };
-
-// DO:
-function showArgs() {
-    console.log(arguments);
-}
-
-// Alternative with rest parameters:
-const showArgsArrow = (...args) => {
-    console.log(args);
-};
 ```
 
 ---
 
 ## Section 6: Symbol
 
-### Symbol Primitive Type
+### Symbol – Unique Identifiers
 
-Symbols are unique identifiers that can be used as object property keys.
+`Symbol` creates unique, immutable primitive values used as object property keys.
 
 ```javascript
-// Creating symbols
+// Create unique symbols
 const sym1 = Symbol();
-const sym2 = Symbol("description");
-const sym3 = Symbol("description");
+const sym2 = Symbol();
+console.log(sym1 === sym2); // false
 
-console.log(sym1); // Symbol()
-console.log(sym2); // Symbol(description)
-console.log(sym2 === sym3); // false (each symbol is unique)
+// Symbols with descriptions
+const id = Symbol('id');
+const userId = Symbol('id');
+console.log(id === userId); // false (each is unique)
+console.log(id.description); // "id"
 
-// Using symbols as object properties
-const id = Symbol("id");
-const user = {
-    name: "John",
-    [id]: 12345
+// Use as object properties
+const person = {
+  name: 'Alice',
+  [id]: 123
 };
 
-console.log(user[id]); // 12345
-console.log(user.name); // "John"
+console.log(person[id]); // 123
+console.log(person.id); // undefined (not the same as symbol)
 
-// Symbols are not enumerable
-console.log(Object.keys(user)); // ["name"]
-for (let key in user) {
-    console.log(key); // Only prints "name"
-}
-
-// Global symbol registry
-const globalSym1 = Symbol.for("global");
-const globalSym2 = Symbol.for("global");
-console.log(globalSym1 === globalSym2); // true
-
-console.log(Symbol.keyFor(globalSym1)); // "global"
+// Symbols are hidden from normal iteration
+console.log(Object.keys(person)); // ['name']
+console.log(Object.getOwnPropertySymbols(person)); // [Symbol(id)]
 
 // Well-known symbols
 const myArray = [1, 2, 3];
-myArray[Symbol.iterator] = function* () {
-    for (let i = this.length - 1; i >= 0; i--) {
-        yield this[i];
-    }
-};
+console.log(myArray[Symbol.iterator]); // [Function: values]
 
-console.log([...myArray]); // [3, 2, 1] (reversed iteration)
+// Create global symbols
+const globalSym = Symbol.for('app.id');
+const sameGlobalSym = Symbol.for('app.id');
+console.log(globalSym === sameGlobalSym); // true
+
+console.log(Symbol.keyFor(globalSym)); // "app.id"
 ```
 
 ---
@@ -1199,219 +792,183 @@ console.log([...myArray]); // [3, 2, 1] (reversed iteration)
 
 ### Iterators
 
-Iterators provide a standard way to traverse through data structures.
+Objects that implement the iterator protocol with a `next()` method.
 
 ```javascript
-// Creating a custom iterator
-function createRangeIterator(start, end) {
-    let current = start;
-    
-    return {
-        next() {
-            if (current < end) {
-                return { value: current++, done: false };
-            } else {
-                return { done: true };
-            }
-        }
-    };
-}
+// Manual iterator
+const numbers = [1, 2, 3];
+const iterator = numbers[Symbol.iterator]();
 
-const iterator = createRangeIterator(1, 4);
 console.log(iterator.next()); // { value: 1, done: false }
 console.log(iterator.next()); // { value: 2, done: false }
 console.log(iterator.next()); // { value: 3, done: false }
-console.log(iterator.next()); // { done: true }
+console.log(iterator.next()); // { value: undefined, done: true }
 
-// Making an object iterable
+// Custom iterator
 const range = {
-    start: 1,
-    end: 5,
-    [Symbol.iterator]() {
-        let current = this.start;
-        const end = this.end;
-        
-        return {
-            next() {
-                if (current < end) {
-                    return { value: current++, done: false };
-                } else {
-                    return { done: true };
-                }
-            }
-        };
-    }
+  from: 1,
+  to: 5,
+
+  [Symbol.iterator]() {
+    let current = this.from;
+    let last = this.to;
+
+    return {
+      next() {
+        if (current <= last) {
+          return { value: current++, done: false };
+        } else {
+          return { done: true };
+        }
+      }
+    };
+  }
 };
 
-// Now we can use for...of
 for (const num of range) {
-    console.log(num); // 1, 2, 3, 4
+  console.log(num); // 1, 2, 3, 4, 5
 }
-
-console.log([...range]); // [1, 2, 3, 4]
 ```
 
 ### Generators
 
-Generators are functions that can pause and resume execution.
+Functions that can pause execution and resume later using `function*` and `yield`.
 
 ```javascript
-// Basic generator function
-function* simpleGenerator() {
-    console.log("First yield");
-    yield 1;
-    console.log("Second yield");
-    yield 2;
-    console.log("Third yield");
-    yield 3;
-    console.log("Generator finished");
+// Basic generator
+function* numberGenerator() {
+  yield 1;
+  yield 2;
+  yield 3;
 }
 
-const gen = simpleGenerator();
-console.log(gen.next()); // "First yield", { value: 1, done: false }
-console.log(gen.next()); // "Second yield", { value: 2, done: false }
-console.log(gen.next()); // "Third yield", { value: 3, done: false }
-console.log(gen.next()); // "Generator finished", { value: undefined, done: true }
+const gen = numberGenerator();
+console.log(gen.next()); // { value: 1, done: false }
+console.log(gen.next()); // { value: 2, done: false }
+console.log(gen.next()); // { value: 3, done: false }
+console.log(gen.next()); // { value: undefined, done: true }
 
-// Generator with infinite sequence
-function* fibonacci() {
-    let a = 0, b = 1;
-    while (true) {
-        yield a;
-        [a, b] = [b, a + b];
-    }
+// Generator with loop
+function* countTo(max) {
+  for (let i = 1; i <= max; i++) {
+    yield i;
+  }
 }
 
-const fib = fibonacci();
-console.log(fib.next().value); // 0
-console.log(fib.next().value); // 1
-console.log(fib.next().value); // 1
-console.log(fib.next().value); // 2
-console.log(fib.next().value); // 3
-
-// Generator for array-like iteration
-function* arrayGenerator(arr) {
-    for (let i = 0; i < arr.length; i++) {
-        yield arr[i];
-    }
+for (const num of countTo(5)) {
+  console.log(num); // 1, 2, 3, 4, 5
 }
 
-const fruits = ["apple", "banana", "cherry"];
-const fruitGen = arrayGenerator(fruits);
-
-for (const fruit of fruitGen) {
-    console.log(fruit); // apple, banana, cherry
+// Infinite generator
+function* idGenerator() {
+  let id = 1;
+  while (true) {
+    yield id++;
+  }
 }
+
+const idGen = idGenerator();
+console.log(idGen.next().value); // 1
+console.log(idGen.next().value); // 2
+console.log(idGen.next().value); // 3
 ```
 
-### `yield` Keyword
+### yield – Pause and Resume
 
-The `yield` keyword pauses generator execution and returns a value.
+`yield` pauses generator execution and can pass values in and out.
 
 ```javascript
-// yield with values
-function* numberGenerator() {
-    yield 10;
-    yield 20;
-    yield 30;
-    return 40; // This becomes the final value when done: true
+// Two-way communication
+function* dialogue() {
+  const name = yield 'What is your name?';
+  const age = yield `Hello ${name}, how old are you?`;
+  return `${name} is ${age} years old`;
 }
 
-const numGen = numberGenerator();
-console.log(numGen.next()); // { value: 10, done: false }
-console.log(numGen.next()); // { value: 20, done: false }
-console.log(numGen.next()); // { value: 30, done: false }
-console.log(numGen.next()); // { value: 40, done: true }
+const conv = dialogue();
+console.log(conv.next().value); // "What is your name?"
+console.log(conv.next('Alice').value); // "Hello Alice, how old are you?"
+console.log(conv.next(25).value); // "Alice is 25 years old"
 
-// yield with input (two-way communication)
-function* twoWayGenerator() {
-    const input1 = yield "First yield";
-    console.log("Received:", input1);
-    
-    const input2 = yield "Second yield";
-    console.log("Received:", input2);
-    
-    return "Done";
+// yield* delegates to another generator
+function* gen1() {
+  yield 1;
+  yield 2;
 }
 
-const twoWayGen = twoWayGenerator();
-console.log(twoWayGen.next()); // { value: "First yield", done: false }
-console.log(twoWayGen.next("Hello")); // Logs "Received: Hello", returns { value: "Second yield", done: false }
-console.log(twoWayGen.next("World")); // Logs "Received: World", returns { value: "Done", done: true }
+function* gen2() {
+  yield* gen1();
+  yield 3;
+  yield 4;
+}
 
-// yield* for delegating to another generator
-function* innerGenerator() {
+for (const num of gen2()) {
+  console.log(num); // 1, 2, 3, 4
+}
+
+// Error handling
+function* errorGenerator() {
+  try {
     yield 1;
     yield 2;
+  } catch (e) {
+    console.log('Caught:', e);
+  }
+  yield 3;
 }
 
-function* outerGenerator() {
-    yield 0;
-    yield* innerGenerator();
-    yield 3;
-}
-
-console.log([...outerGenerator()]); // [0, 1, 2, 3]
+const errGen = errorGenerator();
+console.log(errGen.next().value); // 1
+console.log(errGen.throw('Error!').value); // "Caught: Error!", then 3
 ```
 
 ---
 
 ## Section 8: Promises
 
-### JavaScript Promises
+### Promises – Async Operations
 
-Promises represent the eventual completion or failure of an asynchronous operation.
+Promises represent the eventual completion or failure of asynchronous operations.
 
 ```javascript
-// Creating a Promise
-const simplePromise = new Promise((resolve, reject) => {
-    const success = Math.random() > 0.5;
-    
-    setTimeout(() => {
-        if (success) {
-            resolve("Operation successful!");
-        } else {
-            reject("Operation failed!");
-        }
-    }, 1000);
+// Creating a promise
+const myPromise = new Promise((resolve, reject) => {
+  const success = true;
+  
+  setTimeout(() => {
+    if (success) {
+      resolve('Operation successful!');
+    } else {
+      reject('Operation failed!');
+    }
+  }, 1000);
 });
 
-// Consuming a Promise
-simplePromise
-    .then(result => {
-        console.log("Success:", result);
-    })
-    .catch(error => {
-        console.log("Error:", error);
-    })
-    .finally(() => {
-        console.log("Operation completed");
-    });
+// Consuming a promise
+myPromise
+  .then(result => {
+    console.log(result); // "Operation successful!"
+  })
+  .catch(error => {
+    console.error(error);
+  });
 
-// Promise utility functions
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+// Practical example: Fetch data
+function fetchUser(userId) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (userId > 0) {
+        resolve({ id: userId, name: 'Alice' });
+      } else {
+        reject('Invalid user ID');
+      }
+    }, 1000);
+  });
 }
 
-function fetchUserData(id) {
-    return new Promise((resolve, reject) => {
-        // Simulate API call
-        setTimeout(() => {
-            if (id > 0) {
-                resolve({ id, name: `User ${id}`, email: `user${id}@example.com` });
-            } else {
-                reject(new Error("Invalid user ID"));
-            }
-        }, 500);
-    });
-}
-
-// Using the utility functions
-delay(1000)
-    .then(() => console.log("Delay completed"))
-    .then(() => fetchUserData(123))
-    .then(user => console.log("User data:", user))
-    .catch(error => console.log("Error:", error.message));
+fetchUser(1)
+  .then(user => console.log(user))
+  .catch(error => console.error(error));
 ```
 
 ### Promise Chaining
@@ -1419,843 +976,802 @@ delay(1000)
 Execute multiple asynchronous operations in sequence.
 
 ```javascript
-// Sequential promise chaining
 function step1() {
-    return new Promise(resolve => {
-        setTimeout(() => resolve("Step 1 completed"), 1000);
-    });
+  return new Promise(resolve => {
+    setTimeout(() => resolve('Step 1 complete'), 1000);
+  });
 }
 
 function step2(previousResult) {
-    return new Promise(resolve => {
-        setTimeout(() => resolve(`${previousResult} -> Step 2 completed`), 1000);
-    });
+  return new Promise(resolve => {
+    setTimeout(() => resolve(previousResult + ' -> Step 2 complete'), 1000);
+  });
 }
 
 function step3(previousResult) {
-    return new Promise(resolve => {
-        setTimeout(() => resolve(`${previousResult} -> Step 3 completed`), 1000);
-    });
+  return new Promise(resolve => {
+    setTimeout(() => resolve(previousResult + ' -> Step 3 complete'), 1000);
+  });
 }
 
-// Chain the promises
 step1()
-    .then(result1 => {
-        console.log(result1);
-        return step2(result1);
-    })
-    .then(result2 => {
-        console.log(result2);
-        return step3(result2);
-    })
-    .then(finalResult => {
-        console.log(finalResult);
-        // Output: "Step 1 completed -> Step 2 completed -> Step 3 completed"
-    })
-    .catch(error => {
-        console.error("Error in chain:", error);
-    });
+  .then(result1 => {
+    console.log(result1);
+    return step2(result1);
+  })
+  .then(result2 => {
+    console.log(result2);
+    return step3(result2);
+  })
+  .then(result3 => {
+    console.log(result3);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
 
-// Simplified chaining
+// Cleaner chaining
 step1()
-    .then(step2)
-    .then(step3)
-    .then(result => console.log("Final:", result));
-
-// Promise chaining with data transformation
-function fetchUser(id) {
-    return Promise.resolve({ id, name: `User ${id}` });
-}
-
-function fetchUserPosts(user) {
-    return Promise.resolve({
-        ...user,
-        posts: [`Post 1 by ${user.name}`, `Post 2 by ${user.name}`]
-    });
-}
-
-function formatUserData(userData) {
-    return Promise.resolve(`${userData.name} has ${userData.posts.length} posts`);
-}
-
-fetchUser(1)
-    .then(fetchUserPosts)
-    .then(formatUserData)
-    .then(result => console.log(result)); // "User 1 has 2 posts"
+  .then(step2)
+  .then(step3)
+  .then(finalResult => console.log(finalResult))
+  .catch(error => console.error(error));
 ```
 
-### Promise Composition: `Promise.all()` & `Promise.race()`
+### Promise Composition: Promise.all() & Promise.race()
 
-Combine multiple promises in different ways.
+Combine multiple promises together.
 
 ```javascript
-// Promise.all() - waits for all promises to resolve
-const promise1 = delay(1000).then(() => "First");
-const promise2 = delay(2000).then(() => "Second");
-const promise3 = delay(1500).then(() => "Third");
+// Promise.all - wait for all promises to resolve
+const promise1 = Promise.resolve(3);
+const promise2 = new Promise(resolve => setTimeout(() => resolve(42), 1000));
+const promise3 = Promise.resolve('foo');
 
 Promise.all([promise1, promise2, promise3])
-    .then(results => {
-        console.log("All resolved:", results); // ["First", "Second", "Third"]
-    })
-    .catch(error => {
-        console.log("One failed:", error);
-    });
+  .then(values => {
+    console.log(values); // [3, 42, 'foo']
+  })
+  .catch(error => {
+    console.error('One promise failed:', error);
+  });
 
-// Promise.all() with mixed data types
-const mixedPromises = [
-    42, // Non-promise value
-    Promise.resolve("Hello"),
-    delay(1000).then(() => "World")
-];
+// If any promise rejects, Promise.all rejects
+const failingPromise = Promise.reject('Error!');
+Promise.all([promise1, failingPromise])
+  .then(values => console.log(values))
+  .catch(error => console.error(error)); // "Error!"
 
-Promise.all(mixedPromises)
-    .then(results => console.log(results)); // [42, "Hello", "World"]
-
-// Promise.race() - resolves with the first settled promise
-const slow = delay(2000).then(() => "Slow");
-const fast = delay(1000).then(() => "Fast");
+// Promise.race - return first settled promise
+const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 2000));
+const fast = new Promise(resolve => setTimeout(() => resolve('fast'), 1000));
 
 Promise.race([slow, fast])
-    .then(result => console.log("Winner:", result)); // "Winner: Fast"
+  .then(value => {
+    console.log(value); // "fast"
+  });
 
-// Promise.allSettled() - waits for all to settle (resolve or reject)
-const promises = [
-    Promise.resolve("Success 1"),
-    Promise.reject("Error 1"),
-    Promise.resolve("Success 2")
-];
+// Promise.allSettled - wait for all promises to settle (ES2020)
+Promise.allSettled([
+  Promise.resolve(1),
+  Promise.reject('error'),
+  Promise.resolve(3)
+]).then(results => {
+  console.log(results);
+  // [
+  //   { status: 'fulfilled', value: 1 },
+  //   { status: 'rejected', reason: 'error' },
+  //   { status: 'fulfilled', value: 3 }
+  // ]
+});
 
-Promise.allSettled(promises)
-    .then(results => {
-        console.log(results);
-        // [
-        //   { status: "fulfilled", value: "Success 1" },
-        //   { status: "rejected", reason: "Error 1" },
-        //   { status: "fulfilled", value: "Success 2" }
-        // ]
-    });
-
-// Promise.any() - resolves with the first fulfilled promise
+// Promise.any - return first fulfilled promise (ES2021)
 Promise.any([
-    Promise.reject("Error 1"),
-    delay(2000).then(() => "Success 1"),
-    delay(1000).then(() => "Success 2")
-])
-    .then(result => console.log("First success:", result)); // "First success: Success 2"
+  Promise.reject('error1'),
+  Promise.resolve('success'),
+  Promise.reject('error2')
+]).then(value => {
+  console.log(value); // "success"
+});
 ```
 
 ### Promise Error Handling
 
-Handle errors effectively in promise chains.
+Handle errors in promise chains.
 
 ```javascript
 // Basic error handling
-function riskyOperation() {
-    return new Promise((resolve, reject) => {
-        const random = Math.random();
-        setTimeout(() => {
-            if (random > 0.5) {
-                resolve(`Success with ${random}`);
-            } else {
-                reject(new Error(`Failed with ${random}`));
-            }
-        }, 1000);
-    });
-}
+fetchUser(-1)
+  .then(user => console.log(user))
+  .catch(error => {
+    console.error('Error:', error); // "Error: Invalid user ID"
+  });
 
-riskyOperation()
-    .then(result => {
-        console.log("Operation succeeded:", result);
-        return "Next step";
-    })
-    .then(result => {
-        console.log("Continuing with:", result);
-    })
-    .catch(error => {
-        console.log("Error caught:", error.message);
-    })
-    .finally(() => {
-        console.log("Cleanup operations");
-    });
+// Catch in the middle of chain
+step1()
+  .then(step2)
+  .catch(error => {
+    console.error('Error in step 1 or 2:', error);
+    return 'Recovered'; // Continue chain with recovery value
+  })
+  .then(step3)
+  .then(result => console.log(result));
 
-// Error recovery in chains
-function attemptOperation() {
-    return riskyOperation()
-        .catch(error => {
-            console.log("First attempt failed, trying again...");
-            return riskyOperation(); // Retry
-        })
-        .catch(error => {
-            console.log("Second attempt failed, using fallback");
-            return "Fallback value";
-        });
-}
-
-attemptOperation()
-    .then(result => console.log("Final result:", result));
-
-// Throwing errors in then()
-Promise.resolve("Start")
-    .then(result => {
-        if (result === "Start") {
-            throw new Error("Something went wrong");
-        }
-        return result;
-    })
-    .then(result => {
-        console.log("This won't execute");
-    })
-    .catch(error => {
-        console.log("Caught thrown error:", error.message);
-    });
+// Finally - always executes
+fetchUser(1)
+  .then(user => console.log(user))
+  .catch(error => console.error(error))
+  .finally(() => {
+    console.log('Cleanup complete');
+  });
 
 // Multiple catch blocks
-Promise.reject("Initial error")
-    .catch(error => {
-        console.log("First catch:", error);
-        throw new Error("New error from first catch");
-    })
-    .catch(error => {
-        console.log("Second catch:", error.message);
-        return "Recovered";
-    })
-    .then(result => {
-        console.log("Finally:", result); // "Finally: Recovered"
-    });
+Promise.reject('Initial error')
+  .catch(error => {
+    console.error('First catch:', error);
+    throw 'New error';
+  })
+  .catch(error => {
+    console.error('Second catch:', error);
+  });
+
+// Async/await error handling (modern approach)
+async function getUserData() {
+  try {
+    const user = await fetchUser(1);
+    console.log(user);
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    console.log('Done');
+  }
+}
 ```
 
 ---
 
 ## Section 9: ES6 Collections
 
-### Map
+### Map – Key-Value Pairs
 
-Map holds key-value pairs and remembers the original insertion order of keys.
+`Map` holds key-value pairs where keys can be any type.
 
 ```javascript
-// Creating and using Maps
+// Create a Map
 const map = new Map();
 
-// Setting values
+// Set values
 map.set('name', 'Alice');
-map.set('age', 30);
+map.set('age', 25);
 map.set(1, 'number key');
 map.set(true, 'boolean key');
 
-// Getting values
-console.log(map.get('name')); // 'Alice'
-console.log(map.get(1)); // 'number key'
-console.log(map.get('nonexistent')); // undefined
+// Get values
+console.log(map.get('name')); // "Alice"
+console.log(map.get(1)); // "number key"
 
-// Map properties and methods
-console.log(map.size); // 4
+// Check existence
 console.log(map.has('age')); // true
-console.log(map.delete('age')); // true
+console.log(map.has('email')); // false
+
+// Size
+console.log(map.size); // 4
+
+// Delete
+map.delete('age');
 console.log(map.has('age')); // false
 
-// Initializing Map with array of arrays
-const map2 = new Map([
-    ['key1', 'value1'],
-    ['key2', 'value2'],
-    [3, 'value3']
-]);
-
-// Iterating over Maps
-for (const [key, value] of map2) {
-    console.log(`${key}: ${value}`);
-}
-
-// Using objects as keys
+// Objects as keys
 const obj1 = { id: 1 };
 const obj2 = { id: 2 };
-const objectMap = new Map();
+map.set(obj1, 'First object');
+map.set(obj2, 'Second object');
+console.log(map.get(obj1)); // "First object"
 
-objectMap.set(obj1, 'First object');
-objectMap.set(obj2, 'Second object');
-
-console.log(objectMap.get(obj1)); // 'First object'
-
-// Map methods for iteration
-const fruits = new Map([
-    ['apple', 5],
-    ['banana', 3],
-    ['orange', 8]
-]);
-
-// keys(), values(), entries()
-console.log([...fruits.keys()]); // ['apple', 'banana', 'orange']
-console.log([...fruits.values()]); // [5, 3, 8]
-console.log([...fruits.entries()]); // [['apple', 5], ['banana', 3], ['orange', 8]]
-
-// forEach
-fruits.forEach((value, key) => {
-    console.log(`${key}: ${value}`);
-});
-
-// Converting Map to Array and Object
-const mapArray = [...fruits];
-const mapObject = Object.fromEntries(fruits);
-console.log(mapArray); // [['apple', 5], ['banana', 3], ['orange', 8]]
-console.log(mapObject); // { apple: 5, banana: 3, orange: 8 }
-```
-
-### Set
-
-Set holds unique values of any type.
-
-```javascript
-// Creating and using Sets
-const set = new Set();
-
-// Adding values
-set.add(1);
-set.add(2);
-set.add(2); // Duplicate, won't be added
-set.add('hello');
-set.add({ name: 'object' });
-
-console.log(set.size); // 4
-console.log(set.has(1)); // true
-console.log(set.has(3)); // false
-
-// Initializing Set with array
-const set2 = new Set([1, 2, 3, 3, 4, 4, 5]);
-console.log(set2); // Set(5) { 1, 2, 3, 4, 5 }
-
-// Removing duplicates from array
-const numbers = [1, 2, 2, 3, 3, 3, 4, 5, 5];
-const uniqueNumbers = [...new Set(numbers)];
-console.log(uniqueNumbers); // [1, 2, 3, 4, 5]
-
-// Set methods
-console.log(set.delete(1)); // true
-console.log(set.has(1)); // false
-
-// Iterating over Sets
-const colors = new Set(['red', 'green', 'blue']);
-
-for (const color of colors) {
-    console.log(color);
+// Iterate over Map
+for (const [key, value] of map) {
+  console.log(`${key}: ${value}`);
 }
 
-colors.forEach(color => console.log(color));
+// Map methods
+map.forEach((value, key) => {
+  console.log(`${key} => ${value}`);
+});
 
-// Set operations (union, intersection, difference)
-const setA = new Set([1, 2, 3, 4]);
-const setB = new Set([3, 4, 5, 6]);
+console.log([...map.keys()]); // All keys
+console.log([...map.values()]); // All values
+console.log([...map.entries()]); // All [key, value] pairs
+
+// Initialize with array
+const map2 = new Map([
+  ['fruit', 'apple'],
+  ['vegetable', 'carrot'],
+  ['grain', 'rice']
+]);
+
+// Clear all entries
+map.clear();
+console.log(map.size); // 0
+```
+
+### Set – Unique Values
+
+`Set` holds unique values of any type.
+
+```javascript
+// Create a Set
+const set = new Set();
+
+// Add values
+set.add(1);
+set.add(2);
+set.add(3);
+set.add(2); // Duplicate, won't be added
+console.log(set.size); // 3
+
+// Check existence
+console.log(set.has(2)); // true
+console.log(set.has(5)); // false
+
+// Delete
+set.delete(2);
+console.log(set.has(2)); // false
+
+// Initialize with array
+const numbers = new Set([1, 2, 3, 4, 4, 5, 5]);
+console.log(numbers); // Set { 1, 2, 3, 4, 5 }
+
+// Remove duplicates from array
+const arr = [1, 2, 2, 3, 3, 4];
+const unique = [...new Set(arr)];
+console.log(unique); // [1, 2, 3, 4]
+
+// Iterate over Set
+for (const value of set) {
+  console.log(value);
+}
+
+set.forEach(value => {
+  console.log(value);
+});
+
+// Set operations
+const setA = new Set([1, 2, 3]);
+const setB = new Set([3, 4, 5]);
 
 // Union
 const union = new Set([...setA, ...setB]);
-console.log(union); // Set(6) { 1, 2, 3, 4, 5, 6 }
+console.log(union); // Set { 1, 2, 3, 4, 5 }
 
 // Intersection
 const intersection = new Set([...setA].filter(x => setB.has(x)));
-console.log(intersection); // Set(2) { 3, 4 }
+console.log(intersection); // Set { 3 }
 
 // Difference
 const difference = new Set([...setA].filter(x => !setB.has(x)));
-console.log(difference); // Set(2) { 1, 2 }
+console.log(difference); // Set { 1, 2 }
 
-// Working with objects in Sets
-const objSet = new Set();
-const person1 = { name: 'Alice' };
-const person2 = { name: 'Bob' };
-
-objSet.add(person1);
-objSet.add(person2);
-objSet.add(person1); // Won't be added again (same reference)
-
-console.log(objSet.size); // 2
+// Clear all values
+set.clear();
+console.log(set.size); // 0
 ```
 
 ---
 
 ## Section 10: Array Extensions
 
-### Array.of()
+### Array.of() – Create Arrays
 
-Create arrays from a variable number of arguments.
+Create arrays from a list of arguments.
 
 ```javascript
-// Array.of() vs Array constructor
-console.log(Array(3)); // [empty × 3] - creates array with 3 empty slots
-console.log(Array.of(3)); // [3] - creates array with single element 3
+// Array.of vs Array constructor
+console.log(Array.of(7)); // [7]
+console.log(Array(7)); // [ <7 empty items> ]
 
+console.log(Array.of(1, 2, 3)); // [1, 2, 3]
 console.log(Array(1, 2, 3)); // [1, 2, 3]
-console.log(Array.of(1, 2, 3)); // [1, 2, 3] - same result
 
-// Array.of() with different types
+// Useful for creating arrays with a single element
+const singleElement = Array.of('hello');
+console.log(singleElement); // ['hello']
+
+// Works with any number of arguments
 console.log(Array.of()); // []
 console.log(Array.of(undefined)); // [undefined]
-console.log(Array.of(1, 'hello', true, null)); // [1, 'hello', true, null]
-
-// Practical usage
-function createArray(...elements) {
-    return Array.of(...elements);
-}
-
-console.log(createArray(1, 2, 3)); // [1, 2, 3]
-console.log(createArray('a')); // ['a']
+console.log(Array.of(1, 'two', true, null)); // [1, 'two', true, null]
 ```
 
-### Array.from()
+### Array.from() – Convert to Arrays
 
 Create arrays from array-like or iterable objects.
 
 ```javascript
-// Converting string to array
-console.log(Array.from('hello')); // ['h', 'e', 'l', 'l', 'o']
+// From string
+const str = 'hello';
+const chars = Array.from(str);
+console.log(chars); // ['h', 'e', 'l', 'l', 'o']
 
-// Converting Set to array
+// From Set
 const set = new Set([1, 2, 3]);
-console.log(Array.from(set)); // [1, 2, 3]
+const arr = Array.from(set);
+console.log(arr); // [1, 2, 3]
 
-// Converting NodeList to array (browser environment)
+// From Map
+const map = new Map([['a', 1], ['b', 2]]);
+const mapArr = Array.from(map);
+console.log(mapArr); // [['a', 1], ['b', 2]]
+
+// With mapping function
+const numbers = Array.from([1, 2, 3], x => x * 2);
+console.log(numbers); // [2, 4, 6]
+
+// Create range
+const range = Array.from({ length: 5 }, (v, i) => i + 1);
+console.log(range); // [1, 2, 3, 4, 5]
+
+// From array-like object
+const arrayLike = { 0: 'a', 1: 'b', 2: 'c', length: 3 };
+const realArray = Array.from(arrayLike);
+console.log(realArray); // ['a', 'b', 'c']
+
+// From NodeList (browser)
 // const divs = document.querySelectorAll('div');
 // const divArray = Array.from(divs);
-
-// Array.from() with mapping function
-console.log(Array.from('12345', x => parseInt(x))); // [1, 2, 3, 4, 5]
-console.log(Array.from([1, 2, 3], x => x * 2)); // [2, 4, 6]
-
-// Creating arrays with specific length and values
-console.log(Array.from({ length: 5 }, (_, index) => index)); // [0, 1, 2, 3, 4]
-console.log(Array.from({ length: 3 }, () => 'hello')); // ['hello', 'hello', 'hello']
-
-// Converting array-like objects
-const arrayLike = {
-    0: 'a',
-    1: 'b',
-    2: 'c',
-    length: 3
-};
-console.log(Array.from(arrayLike)); // ['a', 'b', 'c']
-
-// Range function using Array.from
-const range = (start, end) => Array.from({ length: end - start }, (_, i) => start + i);
-console.log(range(1, 6)); // [1, 2, 3, 4, 5]
-console.log(range(0, 10)); // [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 ```
 
-### Array find()
+### Array find() – Find Element
 
 Find the first element that satisfies a condition.
 
 ```javascript
+const numbers = [5, 12, 8, 130, 44];
+
+// Find first even number
+const firstEven = numbers.find(num => num % 2 === 0);
+console.log(firstEven); // 12
+
+// Find first number > 100
+const largeNum = numbers.find(num => num > 100);
+console.log(largeNum); // 130
+
+// Return undefined if not found
+const negative = numbers.find(num => num < 0);
+console.log(negative); // undefined
+
+// With objects
 const users = [
-    { id: 1, name: 'Alice', age: 25, active: true },
-    { id: 2, name: 'Bob', age: 30, active: false },
-    { id: 3, name: 'Charlie', age: 35, active: true },
-    { id: 4, name: 'Diana', age: 28, active: true }
+  { id: 1, name: 'Alice', age: 25 },
+  { id: 2, name: 'Bob', age: 30 },
+  { id: 3, name: 'Charlie', age: 35 }
 ];
 
-// Find first user with age > 30
-const olderUser = users.find(user => user.age > 30);
-console.log(olderUser); // { id: 3, name: 'Charlie', age: 35, active: true }
+const user = users.find(u => u.id === 2);
+console.log(user); // { id: 2, name: 'Bob', age: 30 }
 
-// Find first inactive user
-const inactiveUser = users.find(user => !user.active);
-console.log(inactiveUser); // { id: 2, name: 'Bob', age: 30, active: false }
-
-// Find user by name
-const alice = users.find(user => user.name === 'Alice');
-console.log(alice); // { id: 1, name: 'Alice', age: 25, active: true }
-
-// Returns undefined if not found
-const youngUser = users.find(user => user.age < 20);
-console.log(youngUser); // undefined
-
-// Using with primitive arrays
-const numbers = [1, 3, 5, 8, 10, 12];
-const firstEven = numbers.find(num => num % 2 === 0);
-console.log(firstEven); // 8
-
-// With complex conditions
-const premiumUser = users.find(user => {
-    return user.active && user.age >= 30 && user.name.startsWith('C');
+// With index and array parameters
+const result = numbers.find((value, index, arr) => {
+  console.log(`Checking index ${index}`);
+  return value > 50;
 });
-console.log(premiumUser); // { id: 3, name: 'Charlie', age: 35, active: true }
 ```
 
-### Array findIndex()
+### Array findIndex() – Find Index
 
 Find the index of the first element that satisfies a condition.
 
 ```javascript
-const products = [
-    { id: 1, name: 'Laptop', price: 1200, category: 'Electronics' },
-    { id: 2, name: 'Book', price: 15, category: 'Education' },
-    { id: 3, name: 'Phone', price: 800, category: 'Electronics' },
-    { id: 4, name: 'Desk', price: 300, category: 'Furniture' }
+const numbers = [5, 12, 8, 130, 44];
+
+// Find index of first even number
+const index = numbers.findIndex(num => num % 2 === 0);
+console.log(index); // 1
+
+// Find index of first number > 100
+const largeIndex = numbers.findIndex(num => num > 100);
+console.log(largeIndex); // 3
+
+// Return -1 if not found
+const notFound = numbers.findIndex(num => num < 0);
+console.log(notFound); // -1
+
+// With objects
+const users = [
+  { id: 1, name: 'Alice' },
+  { id: 2, name: 'Bob' },
+  { id: 3, name: 'Charlie' }
 ];
 
-// Find index of first expensive product
-const expensiveIndex = products.findIndex(product => product.price > 500);
-console.log(expensiveIndex); // 0 (Laptop)
+const bobIndex = users.findIndex(u => u.name === 'Bob');
+console.log(bobIndex); // 1
 
-// Find index of product by name
-const phoneIndex = products.findIndex(product => product.name === 'Phone');
-console.log(phoneIndex); // 2
-
-// Returns -1 if not found
-const cheapIndex = products.findIndex(product => product.price < 10);
-console.log(cheapIndex); // -1
-
-// Using with primitive arrays
-const grades = [85, 92, 78, 96, 88];
-const firstAIndex = grades.findIndex(grade => grade >= 90);
-console.log(firstAIndex); // 1 (grade 92)
-
-// Practical example: updating array element
-const updateProduct = (products, id, updates) => {
-    const index = products.findIndex(product => product.id === id);
-    if (index !== -1) {
-        products[index] = { ...products[index], ...updates };
-        return true;
-    }
-    return false;
-};
-
-const productsCopy = [...products];
-updateProduct(productsCopy, 2, { price: 12 });
-console.log(productsCopy[1]); // { id: 2, name: 'Book', price: 12, category: 'Education' }
-
-// Removing element by condition
-const removeByCondition = (array, condition) => {
-    const index = array.findIndex(condition);
-    if (index !== -1) {
-        return array.splice(index, 1)[0];
-    }
-    return null;
-};
-
-const numbers = [10, 20, 30, 40, 50];
-const removed = removeByCondition(numbers, num => num > 25);
-console.log(removed); // 30
-console.log(numbers); // [10, 20, 40, 50]
+// Update element using findIndex
+const targetIndex = users.findIndex(u => u.id === 2);
+if (targetIndex !== -1) {
+  users[targetIndex].name = 'Robert';
+}
+console.log(users[1]); // { id: 2, name: 'Robert' }
 ```
 
 ---
 
 ## Section 11: Object Extensions
 
-### Object.assign()
+### Object.assign() – Copy/Merge Objects
 
 Copy properties from source objects to a target object.
 
 ```javascript
-// Basic usage
-const target = { a: 1, b: 2 };
-const source1 = { b: 3, c: 4 };
-const source2 = { c: 5, d: 6 };
+// Copy object
+const original = { name: 'Alice', age: 25 };
+const copy = Object.assign({}, original);
+console.log(copy); // { name: 'Alice', age: 25 }
 
-const result = Object.assign(target, source1, source2);
-console.log(result); // { a: 1, b: 3, c: 5, d: 6 }
-console.log(target); // Same as result (target is modified)
+// Merge objects
+const obj1 = { a: 1, b: 2 };
+const obj2 = { b: 3, c: 4 };
+const merged = Object.assign({}, obj1, obj2);
+console.log(merged); // { a: 1, b: 3, c: 4 }
 
-// Cloning an object (shallow copy)
-const original = { name: 'Alice', age: 30, hobbies: ['reading', 'coding'] };
-const clone = Object.assign({}, original);
-console.log(clone); // { name: 'Alice', age: 30, hobbies: ['reading', 'coding'] }
+// Multiple sources
+const defaults = { volume: 50, brightness: 80 };
+const userSettings = { volume: 75 };
+const settings = Object.assign({}, defaults, userSettings);
+console.log(settings); // { volume: 75, brightness: 80 }
 
-// Modifying clone doesn't affect original (for primitive values)
-clone.name = 'Bob';
-console.log(original.name); // 'Alice' (unchanged)
+// Modify target object
+const target = { a: 1 };
+Object.assign(target, { b: 2 }, { c: 3 });
+console.log(target); // { a: 1, b: 2, c: 3 }
 
-// But nested objects are shared (shallow copy limitation)
-clone.hobbies.push('swimming');
-console.log(original.hobbies); // ['reading', 'coding', 'swimming'] (affected!)
+// Clone with nested objects (shallow copy)
+const person = { name: 'Alice', address: { city: 'NYC' } };
+const clone = Object.assign({}, person);
+clone.address.city = 'LA'; // Modifies original!
+console.log(person.address.city); // "LA"
 
-// Merging objects
-const defaults = { theme: 'dark', lang: 'en', notifications: true };
-const userSettings = { theme: 'light', fontSize: 14 };
-const finalSettings = Object.assign({}, defaults, userSettings);
-console.log(finalSettings); // { theme: 'light', lang: 'en', notifications: true, fontSize: 14 }
-
-// Using with arrays
-const arr1 = [1, 2, 3];
-const arr2 = [4, 5];
-const mergedArray = Object.assign([], arr1, arr2);
-console.log(mergedArray); // [4, 5, 3] (indices 0 and 1 overwritten)
-
-// Better array merging with spread operator
-const betterMerged = [...arr1, ...arr2];
-console.log(betterMerged); // [1, 2, 3, 4, 5]
-
-// Function to merge user preferences
-function mergePreferences(defaultPrefs, userPrefs) {
-    return Object.assign({}, defaultPrefs, userPrefs);
-}
-
-const defaultPrefs = { autoSave: true, theme: 'light', pageSize: 10 };
-const userPrefs = { theme: 'dark', pageSize: 25 };
-console.log(mergePreferences(defaultPrefs, userPrefs));
-// { autoSave: true, theme: 'dark', pageSize: 25 }
+// Modern alternative: spread operator
+const copy2 = { ...original };
+const merged2 = { ...obj1, ...obj2 };
 ```
 
-### Object.is()
+### Object.is() – Compare Values
 
-Compare two values for equality (similar to === but with special cases).
+Determine if two values are the same value.
 
 ```javascript
-// Regular equality comparisons
-console.log(Object.is(1, 1)); // true
-console.log(Object.is('hello', 'hello')); // true
-console.log(Object.is(true, true)); // true
+// Similar to === but with differences
+console.log(Object.is(25, 25)); // true
+console.log(Object.is('foo', 'foo')); // true
 console.log(Object.is(null, null)); // true
-console.log(Object.is(undefined, undefined)); // true
 
-// Same as === for most cases
-console.log(Object.is(1, '1')); // false
-console.log(Object.is(0, false)); // false
-console.log(Object.is(null, undefined)); // false
-
-// Special cases where Object.is() differs from ===
-console.log(Object.is(NaN, NaN)); // true
+// Difference with ===: NaN
 console.log(NaN === NaN); // false
+console.log(Object.is(NaN, NaN)); // true
 
-console.log(Object.is(0, -0)); // false
-console.log(0 === -0); // true
-
-console.log(Object.is(+0, -0)); // false
+// Difference with ===: +0 and -0
 console.log(+0 === -0); // true
+console.log(Object.is(+0, -0)); // false
 
-// With objects and arrays (reference comparison)
-const obj1 = { name: 'Alice' };
-const obj2 = { name: 'Alice' };
+// Objects (reference comparison)
+const obj1 = { a: 1 };
+const obj2 = { a: 1 };
 const obj3 = obj1;
 
-console.log(Object.is(obj1, obj2)); // false (different objects)
+console.log(Object.is(obj1, obj2)); // false (different references)
 console.log(Object.is(obj1, obj3)); // true (same reference)
 
-// Practical usage in array methods
-const numbers = [1, 2, NaN, 4, NaN, 6];
-
-// Using Object.is to find NaN values
-const hasNaN = numbers.some(num => Object.is(num, NaN));
-console.log(hasNaN); // true
-
-// Count NaN values
-const nanCount = numbers.filter(num => Object.is(num, NaN)).length;
-console.log(nanCount); // 2
-
-// Custom includes function that works with NaN
-function includesValue(array, value) {
-    return array.some(item => Object.is(item, value));
+// Practical use cases
+function safeCompare(a, b) {
+  return Object.is(a, b);
 }
 
-console.log(includesValue([1, 2, NaN], NaN)); // true
-console.log([1, 2, NaN].includes(NaN)); // true (native includes also works with NaN in modern JS)
-
-// Polyfill example for older environments
-if (!Object.is) {
-    Object.is = function(x, y) {
-        // Handle NaN case
-        if (x !== x && y !== y) {
-            return true;
-        }
-        // Handle -0 and +0 case
-        if (x === 0 && y === 0) {
-            return 1 / x === 1 / y;
-        }
-        // Regular equality
-        return x === y;
-    };
-}
+console.log(safeCompare(0, -0)); // false
+console.log(safeCompare(NaN, NaN)); // true
 ```
 
 ---
 
 ## Section 12: String Extensions
 
-### String startsWith()
+### String startsWith() – Check Start
 
-Check if a string starts with specified characters.
+Check if a string starts with another string.
 
 ```javascript
-// Basic usage
-const greeting = "Hello, World!";
-console.log(greeting.startsWith("Hello")); // true
-console.log(greeting.startsWith("Hi")); // false
+const str = 'Hello, World!';
 
-// Case sensitive
-console.log(greeting.startsWith("hello")); // false
-console.log(greeting.startsWith("Hello")); // true
+console.log(str.startsWith('Hello')); // true
+console.log(str.startsWith('World')); // false
+console.log(str.startsWith('hello')); // false (case-sensitive)
 
 // With position parameter
-const sentence = "The quick brown fox";
-console.log(sentence.startsWith("quick")); // false
-console.log(sentence.startsWith("quick", 4)); // true (start checking from index 4)
-console.log(sentence.startsWith("The")); // true
-console.log(sentence.startsWith("The", 0)); // true
+console.log(str.startsWith('World', 7)); // true (start checking from index 7)
+console.log(str.startsWith('o', 4)); // true
 
 // Practical examples
-const url = "https://www.example.com";
-console.log(url.startsWith("http")); // true
-console.log(url.startsWith("https")); // true
-console.log(url.startsWith("ftp")); // false
-
-// File extension checking
-const filenames = ["image.jpg", "document.pdf", "script.js", "style.css"];
-const imageFiles = filenames.filter(filename => 
-    filename.startsWith("image") || 
-    filename.toLowerCase().startsWith("img")
-);
-console.log(imageFiles); // ["image.jpg"]
-
-// Protocol checking function
-function getProtocol(url) {
-    if (url.startsWith("https://")) return "HTTPS";
-    if (url.startsWith("http://")) return "HTTP";
-    if (url.startsWith("ftp://")) return "FTP";
-    return "Unknown";
+const url = 'https://example.com';
+if (url.startsWith('https://')) {
+  console.log('Secure connection');
 }
 
-console.log(getProtocol("https://example.com")); // "HTTPS"
-console.log(getProtocol("ftp://files.example.com")); // "FTP"
+const filename = 'document.pdf';
+if (filename.startsWith('doc')) {
+  console.log('Document file');
+}
 ```
 
-### String endsWith()
+### String endsWith() – Check End
 
-Check if a string ends with specified characters.
+Check if a string ends with another string.
 
 ```javascript
-// Basic usage
-const filename = "document.pdf";
-console.log(filename.endsWith(".pdf")); // true
-console.log(filename.endsWith(".doc")); // false
+const str = 'Hello, World!';
 
-// Case sensitive
-console.log(filename.endsWith(".PDF")); // false
-console.log(filename.endsWith(".pdf")); // true
+console.log(str.endsWith('World!')); // true
+console.log(str.endsWith('Hello')); // false
+console.log(str.endsWith('world!')); // false (case-sensitive)
 
-// With length parameter (considers only first n characters)
-const text = "Hello, World!";
-console.log(text.endsWith("World", 12)); // true (considers "Hello, World")
-console.log(text.endsWith("Hello", 5)); // true (considers "Hello")
-console.log(text.endsWith("World")); // false (full string ends with "!")
+// With length parameter
+console.log(str.endsWith('Hello', 5)); // true (only consider first 5 characters)
+console.log(str.endsWith(',', 6)); // true
 
-// File type validation
-function isImageFile(filename) {
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg'];
-    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+// Practical examples
+const filename = 'document.pdf';
+if (filename.endsWith('.pdf')) {
+  console.log('PDF file');
 }
 
-console.log(isImageFile("photo.JPG")); // true
-console.log(isImageFile("document.pdf")); // false
-console.log(isImageFile("icon.svg")); // true
-
-// URL validation
-const urls = [
-    "https://example.com",
-    "https://api.example.com/v1/",
-    "http://localhost:3000/api",
-    "ftp://files.example.com/"
-];
-
-const apiUrls = urls.filter(url => url.endsWith("/api") || url.endsWith("/api/"));
-console.log(apiUrls); // ["https://api.example.com/v1/", "http://localhost:3000/api"]
-
-// Email domain extraction
-function getDomain(email) {
-    if (!email.includes("@")) return null;
-    return email.substring(email.indexOf("@") + 1);
+const email = 'user@example.com';
+if (email.endsWith('@example.com')) {
+  console.log('Example.com email');
 }
 
-function isGmailAddress(email) {
-    return email.toLowerCase().endsWith("@gmail.com");
+// File extension check
+function getExtension(filename) {
+  const extensions = ['.jpg', '.png', '.gif'];
+  return extensions.find(ext => filename.endsWith(ext));
 }
 
-console.log(isGmailAddress("user@gmail.com")); // true
-console.log(isGmailAddress("user@yahoo.com")); // false
+console.log(getExtension('photo.jpg')); // ".jpg"
 ```
 
-### String includes()
+### String includes() – Check Substring
 
 Check if a string contains another string.
 
 ```javascript
-// Basic usage
-const message = "The quick brown fox jumps over the lazy dog";
-console.log(message.includes("fox")); // true
-console.log(message.includes("cat")); // false
+const str = 'Hello, World!';
 
-// Case sensitive
-console.log(message.includes("Fox")); // false
-console.log(message.includes("fox")); // true
+console.log(str.includes('World')); // true
+console.log(str.includes('world')); // false (case-sensitive)
+console.log(str.includes('Hello')); // true
+console.log(str.includes('xyz')); // false
 
-// With position parameter (start searching from index)
-console.log(message.includes("the")); // true (finds "the" at beginning)
-console.log(message.includes("the", 5)); // true (finds "the" later in string)
-console.log(message.includes("The", 5)); // false (capital "The" only at start)
+// With position parameter
+console.log(str.includes('World', 8)); // false (start searching from index 8)
+console.log(str.includes('World', 7)); // true
 
 // Practical examples
-const userInput = "Hello World 123!@#";
-
-// Input validation
-function containsNumbers(str) {
-    return /\d/.test(str) || str.includes("1") || str.includes("2") || str.includes("3") ||
-           str.includes("4") || str.includes("5") || str.includes("6") || 
-           str.includes("7") || str.includes("8") || str.includes("9") || str.includes("0");
+const message = 'Welcome to our website';
+if (message.includes('Welcome')) {
+  console.log('Greeting message');
 }
 
-// Better approach using includes with array
-function hasNumbers(str) {
-    return ['0','1','2','3','4','5','6','7','8','9'].some(num => str.includes(num));
+// Search in array of strings
+const keywords = ['JavaScript', 'Python', 'Java'];
+const text = 'I love JavaScript programming';
+const hasKeyword = keywords.some(keyword => text.includes(keyword));
+console.log(hasKeyword); // true
+
+// Case-insensitive search
+function includesIgnoreCase(str, search) {
+  return str.toLowerCase().includes(search.toLowerCase());
 }
 
-console.log(hasNumbers(userInput)); // true
-
-// Search functionality
-const products = [
-    "Apple iPhone 13",
-    "Samsung Galaxy S21",
-    "Google Pixel 6",
-    "OnePlus 9 Pro"
-];
-
-function searchProducts(query) {
-    return products.filter(product => 
-        product.toLowerCase().includes(query.toLowerCase())
-    );
-}
-
-console.log(searchProducts("apple")); // ["Apple iPhone 13"]
-console.log(searchProducts("galaxy")); // ["Samsung Galaxy S21"]
-console.log(searchProducts("pro")); // ["OnePlus 9 Pro"]
-
-// Tag/keyword checking
-const blogPost = {
-    title: "JavaScript ES6 Features",
-    content: "This post covers modern JavaScript features including arrow functions, classes, and more.",
-    tags: ["javascript", "es6", "programming"]
-};
-
-function hasKeyword(post, keyword) {
-    const searchText = `${post.title} ${post.content} ${post.tags.join(' ')}`.toLowerCase();
-    return searchText.includes(keyword.toLowerCase());
-}
-
-console.log(hasKeyword(blogPost, "arrow")); // true
-console.log(hasKeyword(blogPost, "python")); // false
-
-// Multiple keyword search
-function hasAnyKeyword(text, keywords) {
-    const lowerText = text.toLowerCase();
-    return keywords.some(keyword => lowerText.includes(keyword.toLowerCase()));
-}
-
-function hasAllKeywords(text, keywords) {
-    const lowerText = text.toLowerCase();
-    return keywords.every(keyword => lowerText.includes(keyword.toLowerCase()));
-}
-
-const searchKeywords = ["javascript", "features"];
-console.log(hasAnyKeyword(blogPost.title, searchKeywords)); // true
-console.log(hasAllKeywords(blogPost.title, searchKeywords)); // false (doesn't contain "features")
+console.log(includesIgnoreCase('Hello World', 'WORLD')); // true
 ```
 
 ---
 
-##
+## Section 13: Proxy & Reflection
+
+### Proxy – Intercept Operations
+
+Wrap objects to intercept and customize fundamental operations.
+
+```javascript
+// Basic proxy with get trap
+const target = { name: 'Alice', age: 25 };
+const handler = {
+  get(target, property) {
+    console.log(`Getting ${property}`);
+    return target[property];
+  }
+};
+
+const proxy = new Proxy(target, handler);
+console.log(proxy.name); // "Getting name", then "Alice"
+
+// Validation with set trap
+const validator = {
+  set(target, property, value) {
+    if (property === 'age') {
+      if (typeof value !== 'number' || value < 0) {
+        throw new TypeError('Age must be a positive number');
+      }
+    }
+    target[property] = value;
+    return true;
+  }
+};
+
+const person = new Proxy({}, validator);
+person.age = 25; // OK
+// person.age = -5; // TypeError: Age must be a positive number
+// person.age = 'twenty'; // TypeError: Age must be a positive number
+
+// Default values with get trap
+const withDefaults = new Proxy({}, {
+  get(target, property) {
+    return property in target ? target[property] : 'N/A';
+  }
+});
+
+withDefaults.name = 'Bob';
+console.log(withDefaults.name); // "Bob"
+console.log(withDefaults.age); // "N/A"
+
+// Array negative indexing
+function createArray(arr) {
+  return new Proxy(arr, {
+    get(target, property) {
+      const index = Number(property);
+      if (index < 0) {
+        return target[target.length + index];
+      }
+      return target[property];
+    }
+  });
+}
+
+const arr = createArray([1, 2, 3, 4, 5]);
+console.log(arr[-1]); // 5
+console.log(arr[-2]); // 4
+
+// Function proxy
+const multiply = (a, b) => a * b;
+const loggedMultiply = new Proxy(multiply, {
+  apply(target, thisArg, args) {
+    console.log(`Called with: ${args}`);
+    return target(...args);
+  }
+});
+
+console.log(loggedMultiply(3, 4)); // "Called with: 3,4", then 12
+
+// Has trap (in operator)
+const hiddenProps = new Proxy({}, {
+  has(target, property) {
+    if (property.startsWith('_')) {
+      return false;
+    }
+    return property in target;
+  }
+});
+
+hiddenProps._secret = 'hidden';
+hiddenProps.public = 'visible';
+console.log('_secret' in hiddenProps); // false
+console.log('public' in hiddenProps); // true
+```
+
+### Reflection – Runtime Manipulation
+
+Reflect API provides methods for interceptable JavaScript operations.
+
+```javascript
+// Reflect.get - get property value
+const obj = { name: 'Alice', age: 25 };
+console.log(Reflect.get(obj, 'name')); // "Alice"
+
+// Reflect.set - set property value
+Reflect.set(obj, 'age', 26);
+console.log(obj.age); // 26
+
+// Reflect.has - check if property exists (like 'in')
+console.log(Reflect.has(obj, 'name')); // true
+console.log(Reflect.has(obj, 'email')); // false
+
+// Reflect.deleteProperty - delete property
+Reflect.deleteProperty(obj, 'age');
+console.log(obj); // { name: 'Alice' }
+
+// Reflect.ownKeys - get all own property keys
+const person = { name: 'Bob', age: 30 };
+console.log(Reflect.ownKeys(person)); // ['name', 'age']
+
+// Reflect.construct - create instance (like 'new')
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+const alice = Reflect.construct(Person, ['Alice']);
+console.log(alice.name); // "Alice"
+
+// Reflect.apply - call function
+function greet(greeting, name) {
+  return `${greeting}, ${name}!`;
+}
+
+const result = Reflect.apply(greet, null, ['Hello', 'World']);
+console.log(result); // "Hello, World!"
+
+// Using Reflect with Proxy
+const target2 = { value: 10 };
+const handler2 = {
+  get(target, property, receiver) {
+    console.log(`Getting ${property}`);
+    return Reflect.get(target, property, receiver);
+  },
+  set(target, property, value, receiver) {
+    console.log(`Setting ${property} to ${value}`);
+    return Reflect.set(target, property, value, receiver);
+  }
+};
+
+const proxy2 = new Proxy(target2, handler2);
+proxy2.value = 20; // "Setting value to 20"
+console.log(proxy2.value); // "Getting value", then 20
+
+// Reflect.getPrototypeOf
+const proto = { type: 'Animal' };
+const dog = Object.create(proto);
+console.log(Reflect.getPrototypeOf(dog) === proto); // true
+
+// Reflect.setPrototypeOf
+const newProto = { type: 'Mammal' };
+Reflect.setPrototypeOf(dog, newProto);
+console.log(dog.type); // "Mammal"
+
+// Reflect.defineProperty
+Reflect.defineProperty(obj, 'id', {
+  value: 123,
+  writable: false,
+  enumerable: true
+});
+console.log(obj.id); // 123
+// obj.id = 456; // Silently fails (or throws in strict mode)
+
+// Reflect.getOwnPropertyDescriptor
+const descriptor = Reflect.getOwnPropertyDescriptor(obj, 'id');
+console.log(descriptor);
+// { value: 123, writable: false, enumerable: true, configurable: false }
+```
+
+---
+
+## Summary
+
+This guide covers the major ES6 features that transformed JavaScript development:
+
+- **Modern Syntax**: `let`, `const`, arrow functions, template literals, and destructuring make code more concise and readable
+- **Modules**: Enable better code organization and reusability
+- **Classes**: Provide cleaner syntax for object-oriented programming
+- **Async Patterns**: Promises and generators simplify asynchronous code
+- **New Data Structures**: Map and Set offer alternatives to objects and arrays
+- **Enhanced Built-ins**: Extensions to Array, Object, and String provide powerful utilities
+- **Advanced Features**: Symbols, Proxy, and Reflect enable meta-programming
+
+These features are now standard in modern JavaScript and are widely supported across browsers and Node.js environments.
+
+---
+
+## Additional Resources
+
+- [MDN Web Docs - JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+- [ECMAScript 6 Specification](https://www.ecma-international.org/ecma-262/6.0/)
+- [JavaScript.info](https://javascript.info/)
+- [Exploring ES6 by Dr. Axel Rauschmayer](https://exploringjs.com/es6/)

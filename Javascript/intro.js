@@ -11,14 +11,15 @@
 // console.log("y", y)
 // console.log("Hello Tiffany the time is 11pm");
 
-const greeting = () => {
+export const greeting = () => {
     const time = 11; 
     const hey = `Hello Tiffany the time is ${time}`
     console.log(hey)
     }
+
 greeting();
 
-function greetTiff(name) {
+export default function greetTiff(name) {
     return "Hey," + name + " how are you doing?";
 }
 

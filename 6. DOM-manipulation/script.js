@@ -38,8 +38,8 @@ const characters = [
   }
   
   function toggleCharacter() {
-    const container = document.getElementById('hero-container');
-    const existing = document.getElementById('hero');
+    const container = document.getElementById('hero-container'); // parent
+    const existing = document.getElementById('hero'); // existing 
   
     if (existing) {
       container.removeChild(existing);
