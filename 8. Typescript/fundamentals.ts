@@ -156,7 +156,7 @@ let student_details = {
 type status = "pending" | "confirmed" | "rejected";
 let my_order: status = "confirmed"
 
-type User = {
+export type User = {
     id: number;
     name: string;
     email: string;
